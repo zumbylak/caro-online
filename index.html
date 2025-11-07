@@ -1,115 +1,73 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Cờ CARO ONLINE — Đăng nhập</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Đăng nhập Google - Firebase</title>
+
+<script type="module">
+  // 1. Import Firebase modules
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.17.0/firebase-app.js";
+  import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.17.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.17.0/firebase-firestore.js";
+
+  // 2. Firebase config (thay bằng của bạn)
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // 3. Login Google
+  const loginBtn = document.getElementById('loginBtn');
+  loginBtn.onclick = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const userGoogle = result.user;
+
+      // 4. Kiểm tra nếu user đã có trong Firestore
+      const userRef = doc(db, "users", userGoogle.email);
+      const docSnap = await getDoc(userRef);
+
+      if (!docSnap.exists()) {
+        // Nếu chưa có, tạo mới
+        const random5 = Math.floor(10000 + Math.random() * 90000);
+        const userData = {
+          id: userGoogle.email,
+          TenND: "User" + random5,
+          DiemSo: 10,
+          Skin: 1
+        };
+        await setDoc(userRef, userData);
+      }
+
+      // 5. Lưu email vào localStorage để sang SanhCho.html
+      localStorage.setItem('uid', userGoogle.email);
+
+      // 6. Chuyển sang trang Sảnh
+      window.location.href = "SanhCho.html";
+
+    } catch (error) {
+      console.error(error);
+      alert("Đăng nhập thất bại: " + error.message);
+    }
+  }
+</script>
+
 <style>
-  :root{--bg:#0f172a;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--text:#e6eef8;}
-  *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial}
-  body{margin:0;background:linear-gradient(180deg,#071029 0%, #0f172a 100%);color:var(--text);display:flex;align-items:center;justify-content:center;height:100vh}
-  .card{width:420px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:14px;padding:28px;box-shadow:0 8px 30px rgba(2,6,23,0.6)}
-  h1{margin:0 0 8px;font-size:20px}
-  p.lead{color:var(--muted);margin:0 0 18px;font-size:13px}
-  button{background:var(--accent);border:none;padding:10px 14px;border-radius:10px;color:#022;cursor:pointer;font-weight:600}
-  .alt{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text)}
-  .info{margin-top:12px;color:var(--muted);font-size:13px}
-  .small{font-size:12px;color:var(--muted)}
-  .field{margin:10px 0}
-  input[type=text]{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:rgba(255,255,255,0.02);color:var(--text)}
-  .center{display:flex;gap:10px;justify-content:center;margin-top:18px}
-  .note{margin-top:10px;color:#ffefc5;padding:8px;border-radius:6px;font-size:13px;background:rgba(255,240,200,0.03)}
+  body { display:flex; justify-content:center; align-items:center; height:100vh; font-family: Arial, sans-serif; background:#f0f2f5; }
+  button { padding:12px 25px; background:#4285F4; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:16px; }
 </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Cờ CARO ONLINE</h1>
-    <p class="lead">Đăng nhập để chơi — tài khoản mặc định lấy từ Gmail. Rating bắt đầu 10 sao và được reset 10 mỗi ngày.</p>
-
-    <div id="gsi-area" style="margin-bottom:12px">
-      <!-- Nếu bạn muốn dùng Google Sign-In thật: thay YOUR_GOOGLE_CLIENT_ID, bỏ comment script và client init -->
-    </div>
-
-    <div style="display:flex;gap:10px;margin-bottom:6px">
-      <button id="btn-google">Đăng nhập bằng Google (demo)</button>
-      <button class="alt" id="btn-guest">Đăng nhập thủ công</button>
-    </div>
-
-    <div class="info">Hoặc dùng chế độ demo: nhập địa chỉ Gmail (không xác thực với Google).</div>
-
-    <div class="field" id="manual" style="display:none;margin-top:12px">
-      <input id="email" placeholder="nhập gmail (vd: minh@gmail.com)"/>
-      <div style="margin-top:8px;display:flex;justify-content:flex-end"><button id="btn-manual">Đăng nhập</button></div>
-    </div>
-
-    <div class="note">
-      Ghi chú kỹ thuật: để dùng Google Identity Services thật, tạo OAuth client (web) trên Google Cloud, thay CLIENT_ID tại chỗ ghi chú trong code, rồi chạy trên server/localhost HTTPS. Nếu không, dùng chế độ demo.
-    </div>
-  </div>
-
-<script>
-/* -------------- Utility: player storage & rating reset -------------- */
-function todayString(){ const d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
-function ensureDailyReset(){
-  const last = localStorage.getItem('caro_lastReset');
-  const today = todayString();
-  if(last !== today){
-    // reset all players to 10
-    const users = JSON.parse(localStorage.getItem('caro_users')||'{}');
-    for(const k in users){ users[k].rating = 10; }
-    localStorage.setItem('caro_users', JSON.stringify(users));
-    localStorage.setItem('caro_lastReset', today);
-  }
-}
-ensureDailyReset();
-
-function saveUser(email, name){
-  const key = email.toLowerCase();
-  const users = JSON.parse(localStorage.getItem('caro_users')||'{}');
-  if(!users[key]) users[key] = {email: key, name: name||key.split('@')[0], rating:10, lastSeen: Date.now()};
-  else { users[key].name = name||users[key].name; users[key].lastSeen = Date.now(); }
-  localStorage.setItem('caro_users', JSON.stringify(users));
-}
-
-/* -------------- Sign-in (demo) -------------- */
-document.getElementById('btn-google').addEventListener('click', ()=> {
-  // Demo quick auto-create fake gmail
-  const demoEmail = 'player' + Math.floor(Math.random()*9000+1000) + '@demo.local';
-  saveUser(demoEmail, demoEmail.split('@')[0]);
-  localStorage.setItem('caro_current', demoEmail);
-  location.href = 'sanhcho.html';
-});
-
-document.getElementById('btn-guest').addEventListener('click', ()=>{
-  document.getElementById('manual').style.display='block';
-});
-
-document.getElementById('btn-manual').addEventListener('click', ()=>{
-  const email = (document.getElementById('email').value||'').trim();
-  if(!email.includes('@')) { alert('Vui lòng nhập địa chỉ email hợp lệ.'); return; }
-  saveUser(email, email.split('@')[0]);
-  localStorage.setItem('caro_current', email.toLowerCase());
-  location.href = 'sanhcho.html';
-});
-
-/* -------------- OPTIONAL: Google Identity Services (commented guidance) --------------
-To use real Google login:
-1) Go to Google Cloud Console -> Credentials -> Create OAuth 2.0 Client ID (Web).
-2) Set authorized origins to your domain or http://localhost
-3) Replace YOUR_GOOGLE_CLIENT_ID below and uncomment the lines to mount the button.
-
-Example (not active by default here to keep demo runnable offline):
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-window.onload = function(){
-  google.accounts.id.initialize({ client_id: 'YOUR_GOOGLE_CLIENT_ID', callback: handleCredentialResponse });
-  google.accounts.id.renderButton(document.getElementById('gsi-area'), { theme:'outline', size:'large', width:300 });
-}
-function handleCredentialResponse(resp){
-  // decode JWT to get email/name or call Google APIs - omitted here for brevity
-  // then call saveUser(email,name) and set localStorage current as above
-}
-------------------------------------------------------------------- */
-
-</script>
+  <button id="loginBtn">Đăng nhập bằng Google</button>
 </body>
 </html>

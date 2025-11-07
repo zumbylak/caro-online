@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sảnh Chờ</title>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.17.0/firebase-app.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.17.0/firebase-firestore.js";
+
+  // Firebase config giống index.html
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  async function loadUser() {
+    const email = localStorage.getItem('uid');
+    if (!email) {
+      alert("Không tìm thấy thông tin người dùng. Quay lại trang đăng nhập.");
+      window.location.href = "index.html";
+      return;
+    }
+
+    const userRef = doc(db, "users", email);
+    const docSnap = await getDoc(userRef);
+
+    if (!docSnap.exists()) {
+      alert("Người dùng không tồn tại trong database.");
+      localStorage.removeItem('uid');
+      window.location.href = "index.html";
+      return;
+    }
+
+    const user = docSnap.data();
+    document.getElementById('uid').textContent = user.id;
+    document.getElementById('tendd').textContent = user.TenND;
+    document.getElementById('diemso').textContent = user.DiemSo;
+    document.getElementById('skin').textContent = user.Skin;
+  }
+
+  window.onload = loadUser;
+
+  document.getElementById('logout').onclick = () => {
+    localStorage.removeItem('uid');
+    window.location.href = "index.html";
+  }
+</script>
+
+<style>
+  body { display:flex; justify-content:center; align-items:center; height:100vh; font-family: Arial, sans-serif; background:#eef3fb; }
+  .card { background:#fff; padding:30px; border-radius:10px; box-shadow:0 5px 15px rgba(0,0,0,0.1); width:400px; }
+  h2 { margin-top:0; }
+  .field { margin:10px 0; }
+  .label { font-weight:bold; }
+  button { padding:10px 20px; border:none; background:#d32f2f; color:#fff; border-radius:5px; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>Thông tin người dùng</h2>
+  <div class="field"><span class="label">ID (email): </span><span id="uid"></span></div>
+  <div class="field"><span class="label">Tên người dùng (TenND): </span><span id="tendd"></span></div>
+  <div class="field"><span class="label">Điểm số (DiemSo): </span><span id="diemso"></span></div>
+  <div class="field"><span class="label">Skin: </span><span id="skin"></span></div>
+  <button id="logout">Đăng xuất</button>
+</div>
+</body>
+</html>
