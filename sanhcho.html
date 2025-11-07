@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Sảnh chờ — Cờ CARO ONLINE</title>
+<style>
+  :root{--bg:#071029;--card:#081223;--accent:#10b981;--muted:#94a3b8;--text:#e6eef8}
+  body{margin:0;background:linear-gradient(180deg,#041428,#071029);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial}
+  header{padding:18px 24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.03)}
+  .wrap{max-width:1100px;margin:22px auto;padding:0 18px}
+  .card{background:var(--card);padding:16px;border-radius:10px;box-shadow:0 6px 20px rgba(2,6,23,0.5);margin-bottom:12px}
+  .row{display:flex;gap:12px}
+  button{background:var(--accent);border:none;padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:600;color:#022}
+  .muted{color:var(--muted)}
+  #rooms{min-height:80px}
+  .room{display:flex;justify-content:space-between;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);margin-bottom:8px}
+  .leader{display:flex;flex-direction:column;gap:6px}
+  .searchBox{display:flex;gap:8px;margin-top:8px}
+  .tiny{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <strong>Cờ CARO ONLINE</strong><div class="tiny muted">Sảnh chờ</div>
+  </div>
+  <div id="userView" class="tiny muted"></div>
+</header>
+
+<div class="wrap">
+  <div class="row">
+    <div style="flex:2">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <button id="btn-random">Tìm Ngẫu Nhiên</button>
+            <button id="btn-create">Tạo Phòng</button>
+            <button id="btn-find">Tìm Phòng</button>
+            <button id="btn-rename" style="background:#334155;color:var(--text)">Đổi Tên</button>
+          </div>
+          <div class="muted tiny">Cập nhật liên tục. Click "Tìm Phòng" để nhập mã.</div>
+        </div>
+
+        <div id="findArea" style="display:none;margin-top:10px">
+          <div class="searchBox">
+            <input id="roomCodeInput" placeholder="Nhập mã phòng 5 chữ số" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04)"/>
+            <button id="btn-joinByCode">Vào phòng</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <h4 style="margin:4px 0">Phòng đang có 1 người</h4>
+          <div id="rooms"></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex:1">
+      <div class="card leader">
+        <h4 style="margin:0">Bảng xếp hạng (Top 10)</h4>
+        <div id="leaderboard" style="margin-top:8px"></div>
+      </div>
+
+      <div class="card">
+        <h4 style="margin:0 0 8px 0">Tài khoản</h4>
+        <div id="profileArea" class="tiny muted"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const current = localStorage.getItem('caro_current');
+if(!current){ alert('Bạn chưa đăng nhập. Quay lại trang đăng nhập.'); location.href='index.html'; }
+ensureDailyReset(); // from earlier page is not present — reimplement small
+function todayString(){ const d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function ensureDailyReset(){
+  const last = localStorage.getItem('caro_lastReset'); const today = todayString();
+  if(last !== today){
+    const users = JSON.parse(localStorage.getItem('caro_users')||'{}');
+    for(const k in users) users[k].rating = 10;
+    localStorage.setItem('caro_users', JSON.stringify(users));
+    localStorage.setItem('caro_lastReset', today);
+  }
+}
+
+function getUsers(){ return JSON.parse(localStorage.getItem('caro_users')||'{}'); }
+function renderProfile(){
+  const users = getUsers();
+  const u = users[current.toLowerCase()];
+  document.getElementById('userView').textContent = u ? `${u.name} • ${u.rating} sao` : current;
+  const pa = document.getElementById('profileArea');
+  pa.innerHTML = u ? `<div><strong>${u.name}</strong></div><div class="tiny muted">${u.email}</div><div style="margin-top:6px"><strong>${u.rating} sao</strong></div>` : 'Không tìm thấy user';
+}
+renderProfile();
+
+/* Rooms stored in localStorage as object: { code: {code, players:[email,...], created, lastActivity, board, turn}} */
+function getRooms(){ return JSON.parse(localStorage.getItem('caro_rooms')||'{}'); }
+function setRooms(r){ localStorage.setItem('caro_rooms', JSON.stringify(r)); }
+
+function makeRoomObject(code, owner){
+  return { code, players:[owner], created:Date.now(), lastActivity:Date.now(), board:null, turn:null };
+}
+
+function renderRooms(){
+  const rooms = getRooms();
+  const container = document.getElementById('rooms');
+  container.innerHTML = '';
+  const arr = Object.values(rooms).filter(r=>r.players.length===1).sort((a,b)=>b.lastActivity-a.lastActivity);
+  if(arr.length===0) container.innerHTML = '<div class="tiny muted">Không có phòng trống nào.</div>';
+  arr.forEach(r=>{
+    const div = document.createElement('div'); div.className='room';
+    div.innerHTML = `<div>Mã <strong>${r.code}</strong> • chủ: ${r.players[0].split('@')[0]}</div>
+      <div><button class="btn-join" data-code="${r.code}">Vào</button></div>`;
+    container.appendChild(div);
+  });
+  // attach join handlers
+  document.querySelectorAll('.btn-join').forEach(b=> b.addEventListener('click', e=>{
+    joinRoomByCode(e.target.dataset.code);
+  }));
+}
+
+function joinRoomByCode(code){
+  const rooms = getRooms();
+  if(!rooms[code]) { alert('Không tìm thấy phòng.'); return; }
+  const room = rooms[code];
+  if(room.players.includes(current)) { location.href = `gomoku.html?room=${code}`; return; }
+  if(room.players.length>=2) { alert('Phòng đã đủ người.'); return; }
+  // join
+  const users = getUsers();
+  if(users[current.toLowerCase()].rating <= 0){ alert('Bạn không đủ điểm để tìm trận (<=0).*'); return; }
+  room.players.push(current.toLowerCase());
+  room.lastActivity = Date.now();
+  setRooms(rooms);
+  // redirect into room page
+  location.href = `gomoku.html?room=${code}`;
+}
+
+document.getElementById('btn-create').addEventListener('click', ()=>{
+  const code = String(Math.floor(10000 + Math.random()*90000));
+  const rooms = getRooms();
+  rooms[code] = makeRoomObject(code, current.toLowerCase());
+  setRooms(rooms);
+  location.href = `gomoku.html?room=${code}`;
+});
+
+document.getElementById('btn-find').addEventListener('click', ()=>{
+  const fa = document.getElementById('findArea');
+  fa.style.display = fa.style.display==='block' ? 'none' : 'block';
+});
+
+document.getElementById('btn-joinByCode').addEventListener('click', ()=>{
+  const v = (document.getElementById('roomCodeInput').value||'').trim();
+  if(!/^\d{5}$/.test(v)){ alert('Mã phòng gồm 5 chữ số'); return; }
+  joinRoomByCode(v);
+});
+
+document.getElementById('btn-random').addEventListener('click', ()=> {
+  const rooms = getRooms();
+  const candidates = Object.values(rooms).filter(r=> r.players.length===1);
+  if(candidates.length===0){ // create new
+    const code = String(Math.floor(10000 + Math.random()*90000));
+    rooms[code] = makeRoomObject(code, current.toLowerCase());
+    setRooms(rooms);
+    location.href = `gomoku.html?room=${code}`;
+    return;
+  }
+  // pick random candidate and join
+  const chosen = candidates[Math.floor(Math.random()*candidates.length)];
+  // check rating
+  const users = getUsers();
+  if(users[current.toLowerCase()].rating <= 0){ alert('Bạn không đủ điểm để tìm trận (<=0).'); return; }
+  joinRoomByCode(chosen.code);
+});
+
+document.getElementById('btn-rename').addEventListener('click', ()=>{
+  const n = prompt('Nhập tên mới (tối đa 20 ký tự)', (getUsers()[current.toLowerCase()]||{}).name || '');
+  if(!n) return;
+  const users = getUsers(); users[current.toLowerCase()].name = n.slice(0,20);
+  localStorage.setItem('caro_users', JSON.stringify(users));
+  renderProfile();
+  broadcast();
+});
+
+/* Leaderboard */
+function renderLeaderboard(){
+  const users = getUsers();
+  const arr = Object.values(users).sort((a,b)=>b.rating - a.rating).slice(0,10);
+  const box = document.getElementById('leaderboard');
+  box.innerHTML = arr.map((u,i)=>`<div style="display:flex;justify-content:space-between"><div>${i+1}. ${u.name}</div><div>${u.rating}</div></div>`).join('');
+}
+
+/* storage event to update across tabs */
+function broadcast(){ localStorage.setItem('caro_sync', Date.now()); }
+window.addEventListener('storage', (e)=>{ if(['caro_rooms','caro_users','caro_sync'].includes(e.key)) { renderRooms(); renderLeaderboard(); renderProfile(); } });
+
+renderRooms(); renderLeaderboard();
+
+/* periodic refresh */
+setInterval(()=>{ renderRooms(); renderLeaderboard(); renderProfile(); }, 2000);
+
+/* small housekeeping: ensure user exists in users map */
+(function ensureUser(){
+  const users = getUsers();
+  if(!users[current.toLowerCase()]) {
+    users[current.toLowerCase()] = { email: current.toLowerCase(), name: current.split('@')[0], rating:10, lastSeen:Date.now() };
+    localStorage.setItem('caro_users', JSON.stringify(users));
+  }
+})();
+</script>
+</body>
+</html>

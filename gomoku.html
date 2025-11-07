@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Gomoku — Cờ CARO ONLINE</title>
+<style>
+  :root{--bg:#f7fafc;--board:#ffffff;--line:#cbd5e1;--green:#059669;--red:#ef4444;--muted:#6b7280}
+  body{margin:0;background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;color:#0f172a}
+  header{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:linear-gradient(90deg,#eef2ff,#f8fafc);border-bottom:1px solid #e6eef8}
+  .wrap{max-width:1100px;margin:14px auto;padding:10px}
+  .topbar{display:flex;align-items:center;gap:10px}
+  button{padding:8px 10px;border-radius:8px;border:none;background:#111827;color:#fff;cursor:pointer}
+  .boardWrap{background:var(--board);padding:12px;border-radius:12px;border:1px solid #e6eef8;display:flex;gap:12px}
+  #board{display:grid;grid-template-columns:repeat(24,28px);grid-template-rows:repeat(24,28px);gap:2px}
+  .cell{width:28px;height:28px;border-radius:4px;background:transparent;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer}
+  .cell.lock{background:#f1f5f9;cursor:not-allowed}
+  .stone{width:20px;height:20px;border-radius:50%}
+  .stone.green{background:var(--green)}
+  .stone.red{background:var(--red)}
+  .cell.highlight{box-shadow:0 0 0 3px rgba(5,150,105,0.12) inset}
+  .cell.last{outline:3px solid rgba(99,102,241,0.25);border-radius:6px}
+  .sidebar{width:230px}
+  .muted{color:var(--muted)}
+  #status{font-weight:700}
+  .tiny{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <div><strong>Gomoku 24×24</strong><div class="tiny">Mã phòng: <span id="roomCode">-----</span></div></div>
+  <div class="topbar">
+    <div id="status">Đang chờ người vào...</div>
+    <button id="btn-back" style="background:#ef4444">Trở lại</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div style="display:flex;gap:12px">
+    <div class="boardWrap">
+      <div id="board" role="grid"></div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-left:8px">
+        <div class="sidebar card" style="padding:8px">
+          <div><strong>Thông tin</strong></div>
+          <div class="tiny" style="margin-top:6px">Bạn: <span id="meName"></span></div>
+          <div class="tiny">Bạn màu: <span id="myColor">-</span></div>
+          <div style="margin-top:8px">Lượt: <span id="turnInfo">-</span></div>
+          <div style="margin-top:8px">Thời gian lượt: <span id="timer">60</span>s</div>
+        </div>
+
+        <div class="sidebar card" style="padding:8px">
+          <div><strong>Người chơi</strong></div>
+          <div id="playersList" style="margin-top:6px" class="tiny muted"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- Helpers ---------- */
+function qs(name){ const p = new URLSearchParams(location.search); return p.get(name); }
+const current = localStorage.getItem('caro_current');
+if(!current){ alert('Bạn chưa đăng nhập.'); location.href='index.html'; }
+
+/* ---------- room / users storage ---------- */
+function getRooms(){ return JSON.parse(localStorage.getItem('caro_rooms')||'{}'); }
+function setRooms(r){ localStorage.setItem('caro_rooms', JSON.stringify(r)); }
+function getUsers(){ return JSON.parse(localStorage.getItem('caro_users')||'{}'); }
+function saveUserRating(email, delta){
+  const users = getUsers();
+  if(users[email.toLowerCase()]){ users[email.toLowerCase()].rating = Math.max(-999, users[email.toLowerCase()].rating + delta); localStorage.setItem('caro_users', JSON.stringify(users)); }
+  localStorage.setItem('caro_sync', Date.now());
+}
+
+/* ---------- room init / join ---------- */
+const code = qs('room') || (Math.floor(10000 + Math.random()*90000) + '');
+document.getElementById('roomCode').textContent = code;
+let room = getRooms()[code];
+if(!room){
+  // create new room
+  room = { code, players: [current.toLowerCase()], created:Date.now(), lastActivity:Date.now(), board: Array(24).fill(0).map(()=>Array(24).fill(null)), turn:null, lastMove:null, started:false, winner:null, timers:{} };
+  const rooms = getRooms(); rooms[code]=room; setRooms(rooms);
+} else {
+  // if already present and has 2 players and not you -> cannot join
+  if(!room.players.includes(current.toLowerCase())){
+    if(room.players.length>=2){ alert('Phòng đã đầy'); location.href='sanhcho.html'; }
+    room.players.push(current.toLowerCase());
+    room.lastActivity = Date.now();
+    const rooms = getRooms(); rooms[code] = room; setRooms(rooms);
+  }
+}
+localStorage.setItem('caro_rooms', JSON.stringify(getRooms())); // persist
+
+/* ---------- UI binding ---------- */
+const boardEl = document.getElementById('board');
+const meNameEl = document.getElementById('meName');
+const playersListEl = document.getElementById('playersList');
+const statusEl = document.getElementById('status');
+const myColorEl = document.getElementById('myColor');
+const turnInfoEl = document.getElementById('turnInfo');
+const timerEl = document.getElementById('timer');
+
+meNameEl.textContent = getUsers()[current.toLowerCase()]?.name || current.split('@')[0];
+
+let myIndex = room.players.indexOf(current.toLowerCase());
+if(myIndex === -1){ myIndex = room.players.length; } // if not yet in list
+
+/* colors: player[0] = green, player[1] = red */
+function getColorForPlayerIdx(i){ return i===0 ? 'green' : 'red'; }
+function getPlayerName(i){
+  const u = getUsers()[ (room.players[i]||'') ];
+  return u ? u.name : (room.players[i] ? room.players[i].split('@')[0] : '-');
+}
+
+/* ---------- Build board UI (24x24) ---------- */
+const ROWS = 24, COLS = 24, LOCK_R = 11, LOCK_C = 11; // lock at (11,11) zero-indexed
+const cells = []; // [r][c] -> el
+function buildBoard(){
+  boardEl.innerHTML = '';
+  for(let r=0;r<ROWS;r++){
+    cells[r]=[];
+    for(let c=0;c<COLS;c++){
+      const el = document.createElement('div'); el.className='cell'; el.dataset.r=r; el.dataset.c=c;
+      if(r===LOCK_R && c===LOCK_C){ el.classList.add('lock'); el.title='Ô khóa (không thể đánh)'; el.textContent='X'; }
+      el.addEventListener('click', ()=> onCellClick(r,c));
+      boardEl.appendChild(el);
+      cells[r][c]=el;
+    }
+  }
+}
+buildBoard();
+
+/* ---------- Sounds: click + ticking via WebAudio ---------- */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playClick(){
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(900, audioCtx.currentTime);
+  g.gain.setValueAtTime(0.0001, audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime+0.01);
+  o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+0.06);
+}
+let tickingOsc=null;
+function startTicking(){
+  if(tickingOsc) return;
+  tickingOsc = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  tickingOsc.type = 'square';
+  tickingOsc.frequency.value = 880;
+  g.gain.setValueAtTime(0.0001,audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.03,audioCtx.currentTime+0.02);
+  tickingOsc.connect(g); g.connect(audioCtx.destination);
+  tickingOsc.start();
+}
+function stopTicking(){ if(tickingOsc){ tickingOsc.stop(); tickingOsc.disconnect(); tickingOsc=null; } }
+
+/* ---------- Game state sync & rendering ---------- */
+function renderFromRoom(){
+  const rooms = getRooms(); room = rooms[code]; if(!room) return;
+  // render players
+  playersListEl.innerHTML = room.players.map((p,i)=> `<div>${getPlayerName(i)} • ${getColorForPlayerIdx(i)}</div>`).join('');
+  // set my color
+  const myIdx = room.players.indexOf(current.toLowerCase());
+  myColorEl.textContent = myIdx>=0 ? getColorForPlayerIdx(myIdx) : '-';
+  // status & turn
+  if(room.winner){ statusEl.textContent = `KẾT THÚC — Người thắng: ${getPlayerName(room.winner)}`; turnInfoEl.textContent='-'; stopTimer(); stopTicking(); }
+  else if(!room.started){ statusEl.textContent = room.players.length < 2 ? 'Đang chờ người vào...' : 'Sẵn sàng — trận sẽ bắt đầu'; }
+  else { statusEl.textContent = `Trận đang chạy`; turnInfoEl.textContent = getPlayerName(room.turn); }
+
+  // board
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const v = room.board?.[r]?.[c];
+      const el = cells[r][c];
+      el.classList.remove('last','highlight');
+      el.innerHTML = '';
+      if(v === 'green' || v === 'red'){
+        const s = document.createElement('div'); s.className = 'stone ' + (v==='green'?'green':'red');
+        el.appendChild(s);
+      }
+      // highlight neighbors around lock when board empty
+      const isEmpty = room.board.flat().every(x=>x===null);
+      if(isEmpty && Math.max(Math.abs(r-LOCK_R),Math.abs(c-LOCK_C))===1 && !(r===LOCK_R && c===LOCK_C)){
+        el.classList.add('highlight');
+      }
+    }
+  }
+  // mark last move border
+  if(room.lastMove){
+    const {r,c} = room.lastMove;
+    cells[r][c].classList.add('last');
+  }
+}
+
+/* ---------- Turn / timer logic ---------- */
+let turnTimer = null;
+let timeLeft = 60;
+function startTimerForPlayer(idx){
+  clearInterval(turnTimer); timeLeft = 60; timerEl.textContent = timeLeft;
+  turnTimer = setInterval(()=>{
+    timeLeft--;
+    timerEl.textContent = timeLeft;
+    if(timeLeft <=10) startTicking();
+    if(timeLeft<=0){
+      clearInterval(turnTimer); stopTicking();
+      // time out -> current player loses
+      const loserIdx = room.turn; // index of player who should move but timed out
+      const winnerIdx = loserIdx===0?1:0;
+      finishGame(winnerIdx, `${getPlayerName(loserIdx)} bị hết giờ`);
+    }
+  }, 1000);
+}
+function stopTimer(){ clearInterval(turnTimer); timerEl.textContent = '0'; stopTicking(); }
+
+/* ---------- Play / move handling ---------- */
+function canPlayAt(r,c){
+  if(r===LOCK_R && c===LOCK_C) return false;
+  if(room.board[r][c] !== null) return false;
+  // if not started: first move rules: only near lock allowed
+  const isEmpty = room.board.flat().every(x=>x===null);
+  if(isEmpty){
+    const dr = Math.abs(r-LOCK_R), dc = Math.abs(c-LOCK_C);
+    if(Math.max(dr,dc) !== 1) return false; // require adjacency (8-neighbor)
+  }
+  return true;
+}
+
+function onCellClick(r,c){
+  if(room.winner) return;
+  const myIdx = room.players.indexOf(current.toLowerCase());
+  if(myIdx === -1) return alert('Bạn chưa ở trong phòng.');
+  if(!room.started){
+    if(room.players.length < 2) return alert('Phòng chưa đủ người để bắt đầu.');
+    // start game
+    room.started=true;
+    room.turn = 0; // player 0 starts
+  }
+  if(room.turn !== myIdx) return alert('Chưa tới lượt bạn.');
+  if(!canPlayAt(r,c)) return alert('Ô này không thể đánh bây giờ.');
+  // place stone
+  const col = getColorForPlayerIdx(myIdx);
+  room.board[r][c] = col;
+  room.lastMove = {r,c,by:current.toLowerCase()};
+  room.lastActivity = Date.now();
+  // play sound
+  playClick();
+  // check win
+  if(checkWin(r,c,col)){
+    finishGame(myIdx, `${getPlayerName(myIdx)} thắng!`);
+  } else {
+    // switch turn
+    room.turn = (room.turn + 1) % 2;
+    // reset timer for next
+    startTimerForPlayer(room.turn);
+    // persist
+    const rooms = getRooms(); rooms[code]=room; setRooms(rooms); localStorage.setItem('caro_sync', Date.now());
+    renderFromRoom();
+  }
+}
+
+function finishGame(winnerIdx, msg){
+  room.winner = winnerIdx;
+  room.started = false;
+  stopTimer(); stopTicking();
+  // update ratings: winner +1, loser -1 (if exists)
+  const loserIdx = winnerIdx===0?1:0;
+  if(room.players[winnerIdx]) saveUserRating(room.players[winnerIdx], +1);
+  if(room.players[loserIdx]) saveUserRating(room.players[loserIdx], -1);
+  // persist and show
+  const rooms = getRooms(); rooms[code]=room; setRooms(rooms); localStorage.setItem('caro_sync', Date.now());
+  alert(msg);
+  renderFromRoom();
+}
+
+/* ---------- Win detection (5 in a row) ---------- */
+function checkWin(r,c,color){
+  const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+  for(const [dr,dc] of dirs){
+    let cnt=1;
+    for(let s=1;s<5;s++){ const rr=r+dr*s, cc=c+dc*s; if(rr<0||cc<0||rr>=ROWS||cc>=COLS) break; if(room.board[rr][cc]===color) cnt++; else break; }
+    for(let s=1;s<5;s++){ const rr=r-dr*s, cc=c-dc*s; if(rr<0||cc<0||rr>=ROWS||cc>=COLS) break; if(room.board[rr][cc]===color) cnt++; else break; }
+    if(cnt>=5) return true;
+  }
+  return false;
+}
+
+/* ---------- Join/leave / sync logic ---------- */
+function tryAutoStart(){
+  if(room.players.length>=2 && !room.started && !room.winner){
+    room.started = true;
+    room.turn = 0; // player 0 starts
+    room.board = room.board || Array(24).fill(0).map(()=>Array(24).fill(null));
+    // persist
+    const rooms = getRooms(); rooms[code]=room; setRooms(rooms); localStorage.setItem('caro_sync', Date.now());
+    startTimerForPlayer(room.turn);
+  }
+}
+
+renderFromRoom();
+tryAutoStart();
+
+/* React to external changes (other tab) */
+window.addEventListener('storage', (e)=>{
+  if(['caro_rooms','caro_sync','caro_users'].includes(e.key)){
+    const rooms = getRooms(); room = rooms[code]; if(!room) return;
+    renderFromRoom();
+  }
+});
+
+/* ensure periodic sync */
+setInterval(()=>{ const rooms=getRooms(); room=rooms[code]||room; renderFromRoom(); }, 1000);
+
+/* Start timer when first move occurs: we already start when match starts. But ensure timer starts only after first move => we started when started true. */
+function startTimerIfNeeded(){
+  if(room.started && room.turn !== null) startTimerForPlayer(room.turn);
+}
+
+/* If someone leaves (close tab), remove from room after inactivity -- simple cleanup */
+setInterval(()=>{
+  const rooms = getRooms();
+  const r = rooms[code];
+  if(!r) return;
+  // if both players absent for long, remove room (cleanup)
+  if(Date.now() - r.lastActivity > 1000*60*60*6){ delete rooms[code]; setRooms(rooms); localStorage.setItem('caro_sync', Date.now()); return; }
+}, 1000*60*10);
+
+/* Back button */
+document.getElementById('btn-back').addEventListener('click', ()=>{
+  // leave room: remove player from list
+  const rooms = getRooms(); const r = rooms[code];
+  if(r){
+    r.players = r.players.filter(p=>p !== current.toLowerCase());
+    r.lastActivity = Date.now();
+    // if room empty, delete
+    if(r.players.length===0) delete rooms[code]; else rooms[code]=r;
+    setRooms(rooms); localStorage.setItem('caro_sync', Date.now());
+  }
+  location.href='sanhcho.html';
+});
+
+/* when page unload, update lastActivity */
+window.addEventListener('beforeunload', ()=>{
+  const rooms = getRooms(); const r = rooms[code];
+  if(r){
+    r.players = r.players.filter(p=>p !== current.toLowerCase());
+    r.lastActivity = Date.now();
+    if(r.players.length===0) delete rooms[code]; else rooms[code]=r;
+    setRooms(rooms); localStorage.setItem('caro_sync', Date.now());
+  }
+});
+</script>
+</body>
+</html>

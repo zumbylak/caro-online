@@ -1,487 +1,115 @@
 <!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Cờ CARO ONLINE — Demo (Notepad++)</title>
-  <style>
-    :root{--bg:#0f172a;--card:#0b1220;--accent:#10b981;--muted:#94a3b8;--white:#ffffff}
-    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
-    body{margin:0;background:linear-gradient(180deg,#071020 0%, #0b2030 100%);color:var(--white);min-height:100vh;display:flex;align-items:center;justify-content:center}
-    .app{width:100%;max-width:1100px;padding:18px}
-    .card{background:rgba(255,255,255,0.03);border-radius:12px;padding:18px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
-    header h1{margin:0 0 6px 0;font-size:20px}
-    header p{margin:0;color:var(--muted);font-size:13px}
-
-    /* Login */
-    .center{display:grid;gap:12px;place-items:center;padding:24px}
-    .google-btn{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:#fff;color:#111;cursor:pointer}
-    .muted{color:var(--muted)}
-
-    /* Lobby */
-    .lobby{display:grid;grid-template-columns:1fr 320px;gap:16px}
-    .controls{display:flex;gap:8px;flex-wrap:wrap}
-    .btn{background:linear-gradient(180deg,var(--accent),#059669);border:none;padding:8px 12px;border-radius:8px;color:white;cursor:pointer}
-    .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.08)}
-    .panel{background:rgba(255,255,255,0.02);padding:12px;border-radius:10px}
-    .room-list{max-height:360px;overflow:auto}
-    .room-item{display:flex;justify-content:space-between;padding:8px;border-bottom:1px dashed rgba(255,255,255,0.03)}
-
-    /* Game */
-    .game-area{display:flex;gap:12px}
-    .board{background:#fff;padding:8px;border-radius:8px}
-    .grid{display:grid;grid-template-columns:repeat(24,22px);grid-auto-rows:22px;gap:1px}
-    .cell{width:22px;height:22px;background:#fff;border:1px solid #cbd5e1;display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer}
-    .cell.lock{background:#111;border:2px solid #000}
-    .cell.highlight{outline:2px solid rgba(16,185,129,0.8)}
-    .cell.last{box-shadow:0 0 0 2px rgba(59,130,246,0.5) inset}
-    .stone{width:18px;height:18px;border-radius:50%}
-    .stone.black{background:#111}
-    .stone.white{background:#f9fafb}
-
-    .rightcol{width:320px}
-    .overlay{position:fixed;inset:0;background:rgba(3,7,18,0.7);display:flex;align-items:center;justify-content:center}
-    .modal{background:#071428;padding:18px;border-radius:10px;width:320px}
-
-    .small{font-size:13px;color:var(--muted)}
-    footer{margin-top:12px;color:var(--muted);font-size:13px}
-
-    @media(max-width:900px){.lobby{grid-template-columns:1fr}}
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cờ CARO ONLINE — Đăng nhập</title>
+<style>
+  :root{--bg:#0f172a;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--text:#e6eef8;}
+  *{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial}
+  body{margin:0;background:linear-gradient(180deg,#071029 0%, #0f172a 100%);color:var(--text);display:flex;align-items:center;justify-content:center;height:100vh}
+  .card{width:420px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:14px;padding:28px;box-shadow:0 8px 30px rgba(2,6,23,0.6)}
+  h1{margin:0 0 8px;font-size:20px}
+  p.lead{color:var(--muted);margin:0 0 18px;font-size:13px}
+  button{background:var(--accent);border:none;padding:10px 14px;border-radius:10px;color:#022;cursor:pointer;font-weight:600}
+  .alt{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--text)}
+  .info{margin-top:12px;color:var(--muted);font-size:13px}
+  .small{font-size:12px;color:var(--muted)}
+  .field{margin:10px 0}
+  input[type=text]{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:rgba(255,255,255,0.02);color:var(--text)}
+  .center{display:flex;gap:10px;justify-content:center;margin-top:18px}
+  .note{margin-top:10px;color:#ffefc5;padding:8px;border-radius:6px;font-size:13px;background:rgba(255,240,200,0.03)}
+</style>
 </head>
 <body>
-  <div class="app card" id="app">
-    <header>
-      <h1>Cờ CARO ONLINE — Demo</h1>
-      <p class="small">Giao diện làm bằng Notepad++. Demo hoạt động local (localStorage). Mở nhiều tab để mô phỏng nhiều người chơi.</p>
-    </header>
+  <div class="card">
+    <h1>Cờ CARO ONLINE</h1>
+    <p class="lead">Đăng nhập để chơi — tài khoản mặc định lấy từ Gmail. Rating bắt đầu 10 sao và được reset 10 mỗi ngày.</p>
 
-    <!-- LOGIN -->
-    <div id="loginView" class="center">
-      <div class="card" style="max-width:420px;width:100%;padding:18px">
-        <h2>Đăng nhập</h2>
-        <p class="muted">Đăng nhập bằng Google (mô phỏng). Tên mặc định lấy từ email.</p>
-        <div style="height:8px"></div>
-        <div class="google-btn" id="fakeGoogleBtn">
-          <img src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 48 48'><path fill='%23EA4335' d='M24 9.5c3.5 0 6.3 1.2 8.4 2.6l6.1-6.1C34.9 3.2 29.9 1.5 24 1.5 14 1.5 5.7 6.9 2 14.7l7.4 5.7C11.3 14.1 17 9.5 24 9.5z'/></svg>"/>
-          <span>Đăng nhập bằng Google</span>
-        </div>
-
-        <div style="height:10px"></div>
-        <div class="small muted">Hoặc nhập email giả để thử:</div>
-        <input id="emailInput" placeholder="yourname@gmail.com" style="width:100%;padding:8px;margin-top:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06)">
-        <div style="height:8px"></div>
-        <button class="btn" id="signInBtn">Đăng nhập</button>
-      </div>
+    <div id="gsi-area" style="margin-bottom:12px">
+      <!-- Nếu bạn muốn dùng Google Sign-In thật: thay YOUR_GOOGLE_CLIENT_ID, bỏ comment script và client init -->
     </div>
 
-    <!-- LOBBY -->
-    <div id="lobbyView" style="display:none">
-      <div class="lobby">
-        <div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <div>
-              <div style="font-weight:600" id="playerName">Player</div>
-              <div class="small">Điểm hạng: <span id="playerScore">10</span></div>
-            </div>
-            <div>
-              <button class="btn" id="btnFindRandom">Tìm Ngẫu Nhiên</button>
-              <button class="btn secondary" id="btnCreateRoom">Tạo Phòng</button>
-              <button class="btn secondary" id="btnFindRoom">Tìm Phòng</button>
-              <button class="btn secondary" id="btnRename">Đổi Tên</button>
-            </div>
-          </div>
-
-          <div class="panel">
-            <h3 style="margin:0 0 8px 0">Danh sách phòng (có 1 người)</h3>
-            <div class="room-list" id="roomList"></div>
-          </div>
-          <div style="height:8px"></div>
-          <div class="panel">
-            <h3 style="margin:0 0 8px 0">Sảnh chờ — Thông tin</h3>
-            <div class="small">Mỗi tài khoản bắt đầu với 10 điểm hạng. Mỗi ngày điểm sẽ được reset về 10 (local).</div>
-            <div class="small">Nếu điểm &le; 0 sẽ không thể tìm trận.</div>
-          </div>
-        </div>
-
-        <aside class="rightcol">
-          <div class="panel" style="margin-bottom:8px">
-            <h3 style="margin:0 0 8px 0">Bảng xếp hạng — Top 10</h3>
-            <div id="leaderboard"></div>
-          </div>
-          <div class="panel">
-            <h3 style="margin:0 0 8px 0">Trạng thái</h3>
-            <div class="small" id="statusBox">Sẵn sàng</div>
-          </div>
-        </aside>
-      </div>
+    <div style="display:flex;gap:10px;margin-bottom:6px">
+      <button id="btn-google">Đăng nhập bằng Google (demo)</button>
+      <button class="alt" id="btn-guest">Đăng nhập thủ công</button>
     </div>
 
-    <!-- GAME -->
-    <div id="gameView" style="display:none">
-      <div class="game-area">
-        <div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <div>
-              <strong id="roomCodeTitle">Phòng: 00000</strong>
-              <div class="small">Người chơi: <span id="playersInRoom">0/2</span></div>
-            </div>
-            <div>
-              <button class="btn secondary" id="btnBackToLobby">Trở lại</button>
-            </div>
-          </div>
+    <div class="info">Hoặc dùng chế độ demo: nhập địa chỉ Gmail (không xác thực với Google).</div>
 
-          <div class="board" id="boardWrap">
-            <div class="grid" id="grid"></div>
-          </div>
-
-          <div style="margin-top:10px;color:var(--muted)">
-            <div class="small">Ô giữa là ô <strong>LOCK</strong> không thể đánh. Con cờ đầu chỉ có thể đánh gần ô lock (trong bán kính Manhattan ≤2). Lượt mỗi người 60s.</div>
-          </div>
-        </div>
-
-        <aside class="rightcol">
-          <div class="panel" style="margin-bottom:8px">
-            <h3 style="margin:0 0 8px 0">Thông tin trận</h3>
-            <div>Chủ phòng: <span id="hostName">-</span></div>
-            <div>Trận đã bắt đầu: <span id="startedFlag">Không</span></div>
-            <div style="height:8px"></div>
-            <div>Thời gian lượt: <span id="turnTimer">-</span></div>
-            <div style="height:8px"></div>
-            <div>Trạng thái: <div id="gameStatus" class="small">Đang chờ</div></div>
-          </div>
-          <div class="panel">
-            <h3 style="margin:0 0 8px 0">Người chơi</h3>
-            <div id="playerListBox"></div>
-          </div>
-        </aside>
-      </div>
+    <div class="field" id="manual" style="display:none;margin-top:12px">
+      <input id="email" placeholder="nhập gmail (vd: minh@gmail.com)"/>
+      <div style="margin-top:8px;display:flex;justify-content:flex-end"><button id="btn-manual">Đăng nhập</button></div>
     </div>
 
-    <footer>
-      <div class="small">Ghi chú: bản demo sử dụng localStorage và event 'storage' để mô phỏng nhiều client trên cùng một máy. Không phải hệ thống thật với OAuth và server.</div>
-    </footer>
+    <div class="note">
+      Ghi chú kỹ thuật: để dùng Google Identity Services thật, tạo OAuth client (web) trên Google Cloud, thay CLIENT_ID tại chỗ ghi chú trong code, rồi chạy trên server/localhost HTTPS. Nếu không, dùng chế độ demo.
+    </div>
   </div>
 
-  <!-- MODALS -->
-  <div id="overlay" class="overlay" style="display:none">
-    <div class="modal" id="modalContent"></div>
-  </div>
+<script>
+/* -------------- Utility: player storage & rating reset -------------- */
+function todayString(){ const d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+function ensureDailyReset(){
+  const last = localStorage.getItem('caro_lastReset');
+  const today = todayString();
+  if(last !== today){
+    // reset all players to 10
+    const users = JSON.parse(localStorage.getItem('caro_users')||'{}');
+    for(const k in users){ users[k].rating = 10; }
+    localStorage.setItem('caro_users', JSON.stringify(users));
+    localStorage.setItem('caro_lastReset', today);
+  }
+}
+ensureDailyReset();
 
-  <script>
-  (function(){
-    // --- Utilities ---
-    const Q = sel=>document.querySelector(sel);
-    const id = id=>document.getElementById(id);
+function saveUser(email, name){
+  const key = email.toLowerCase();
+  const users = JSON.parse(localStorage.getItem('caro_users')||'{}');
+  if(!users[key]) users[key] = {email: key, name: name||key.split('@')[0], rating:10, lastSeen: Date.now()};
+  else { users[key].name = name||users[key].name; users[key].lastSeen = Date.now(); }
+  localStorage.setItem('caro_users', JSON.stringify(users));
+}
 
-    // storage keys
-    const KEY_USERS = 'caro_demo_users'; // {email:{name,score,lastReset}}
-    const KEY_ROOMS = 'caro_demo_rooms'; // {code:{players:[email],host,board,turn,lastMove,started,winner}}
+/* -------------- Sign-in (demo) -------------- */
+document.getElementById('btn-google').addEventListener('click', ()=> {
+  // Demo quick auto-create fake gmail
+  const demoEmail = 'player' + Math.floor(Math.random()*9000+1000) + '@demo.local';
+  saveUser(demoEmail, demoEmail.split('@')[0]);
+  localStorage.setItem('caro_current', demoEmail);
+  location.href = 'sanhcho.html';
+});
 
-    // audio utils using WebAudio
-    const audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    function clickSound(){
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.type='sine';o.frequency.value=800;
-      g.gain.value=0.08;
-      o.connect(g);g.connect(audioCtx.destination);
-      o.start();o.stop(audioCtx.currentTime+0.06);
-    }
-    let tickOsc=null;
-    function startTick(){ if(tickOsc) return; tickOsc = audioCtx.createOscillator(); const g=audioCtx.createGain(); tickOsc.type='square'; tickOsc.frequency.value=1200; g.gain.value=0.02; tickOsc.connect(g); g.connect(audioCtx.destination); tickOsc.start(); }
-    function stopTick(){ if(!tickOsc) return; tickOsc.stop(); tickOsc=null; }
+document.getElementById('btn-guest').addEventListener('click', ()=>{
+  document.getElementById('manual').style.display='block';
+});
 
-    // --- local storage helpers ---
-    function readJSON(key, fallback){ try{const v=localStorage.getItem(key); return v?JSON.parse(v):fallback;}catch(e){return fallback;} }
-    function writeJSON(key, obj){ localStorage.setItem(key, JSON.stringify(obj)); }
+document.getElementById('btn-manual').addEventListener('click', ()=>{
+  const email = (document.getElementById('email').value||'').trim();
+  if(!email.includes('@')) { alert('Vui lòng nhập địa chỉ email hợp lệ.'); return; }
+  saveUser(email, email.split('@')[0]);
+  localStorage.setItem('caro_current', email.toLowerCase());
+  location.href = 'sanhcho.html';
+});
 
-    // initialize stores
-    if(!readJSON(KEY_USERS, null)) writeJSON(KEY_USERS, {});
-    if(!readJSON(KEY_ROOMS, null)) writeJSON(KEY_ROOMS, {});
+/* -------------- OPTIONAL: Google Identity Services (commented guidance) --------------
+To use real Google login:
+1) Go to Google Cloud Console -> Credentials -> Create OAuth 2.0 Client ID (Web).
+2) Set authorized origins to your domain or http://localhost
+3) Replace YOUR_GOOGLE_CLIENT_ID below and uncomment the lines to mount the button.
 
-    // --- Auth (fake) ---
-    let currentUser=null; // {email,name}
-    function ensureDailyReset(userObj){
-      const today = new Date().toISOString().slice(0,10);
-      if(userObj.lastReset !== today){ userObj.score = 10; userObj.lastReset = today; }
-    }
-    function signIn(email){
-      email = (email||'').trim().toLowerCase(); if(!email.includes('@')){ alert('Nhập email hợp lệ (ví dụ: name@gmail.com)'); return; }
-      const users = readJSON(KEY_USERS, {});
-      if(!users[email]) users[email] = {name: email.split('@')[0], score:10, lastReset: new Date().toISOString().slice(0,10)};
-      ensureDailyReset(users[email]);
-      writeJSON(KEY_USERS, users);
-      currentUser = {email, name: users[email].name};
-      renderAfterAuth();
-      // inform others
-      localStorage.setItem('caro_demo_signal','signin-'+Date.now());
-    }
+Example (not active by default here to keep demo runnable offline):
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+window.onload = function(){
+  google.accounts.id.initialize({ client_id: 'YOUR_GOOGLE_CLIENT_ID', callback: handleCredentialResponse });
+  google.accounts.id.renderButton(document.getElementById('gsi-area'), { theme:'outline', size:'large', width:300 });
+}
+function handleCredentialResponse(resp){
+  // decode JWT to get email/name or call Google APIs - omitted here for brevity
+  // then call saveUser(email,name) and set localStorage current as above
+}
+------------------------------------------------------------------- */
 
-    // --- Views ---
-    const loginView = id('loginView'), lobbyView = id('lobbyView'), gameView = id('gameView');
-
-    id('fakeGoogleBtn').addEventListener('click', ()=>{
-      const fake = prompt('Mô phỏng Google: nhập email để đăng nhập (ví dụ: user@gmail.com)'); if(fake) signIn(fake);
-    });
-    id('signInBtn').addEventListener('click', ()=> signIn(id('emailInput').value));
-
-    function renderAfterAuth(){
-      loginView.style.display='none'; lobbyView.style.display='block'; gameView.style.display='none';
-      id('playerName').textContent = currentUser.name;
-      updatePlayerScoreUI();
-      renderRoomList(); renderLeaderboard(); updateStatus('Đã đăng nhập');
-    }
-
-    // --- Player score UI ---
-    function updatePlayerScoreUI(){ const users=readJSON(KEY_USERS,{}); const u=users[currentUser.email]; if(!u) return; id('playerScore').textContent = u.score; }
-
-    // --- Rooms & Lobby ---
-    function randomCode(){ return String(Math.floor(10000 + Math.random()*90000)); }
-
-    function getRooms(){ return readJSON(KEY_ROOMS, {}); }
-    function setRooms(rooms){ writeJSON(KEY_ROOMS, rooms); }
-
-    function renderRoomList(){
-      const rooms = getRooms(); const el = id('roomList'); el.innerHTML='';
-      Object.keys(rooms).forEach(code=>{
-        const r = rooms[code];
-        if(r.players.length===1){
-          const div = document.createElement('div'); div.className='room-item';
-          div.innerHTML = `<div>Phòng ${code}</div><div><button class='btn secondary' data-join='${code}'>Tham gia</button></div>`;
-          el.appendChild(div);
-        }
-      });
-      el.querySelectorAll('button[data-join]').forEach(b=>b.addEventListener('click',()=>joinRoom(b.dataset.join)));
-    }
-
-    function renderLeaderboard(){
-      const users = readJSON(KEY_USERS,{});
-      const arr = Object.keys(users).map(e=>({email:e,name:users[e].name,score:users[e].score}));
-      arr.sort((a,b)=>b.score-a.score);
-      const top = arr.slice(0,10);
-      const el = id('leaderboard'); el.innerHTML='';
-      top.forEach((p,i)=>{ const div=document.createElement('div'); div.className='small'; div.textContent = `${i+1}. ${p.name} — ${p.score}`; el.appendChild(div); });
-    }
-
-    // Buttons
-    id('btnRename').addEventListener('click', ()=>{
-      showModal(`<h3>Đổi tên</h3><div class='small'>Tên hiện tại: ${currentUser.name}</div><div style='height:8px'></div><input id='newName' placeholder='Tên mới' style='width:100%;padding:8px;border-radius:6px'><div style='height:8px'></div><div style='display:flex;gap:8px;justify-content:flex-end'><button class='btn secondary' id='cancelRen'>Hủy</button><button class='btn' id='saveRen'>Lưu</button></div>`);
-      id('cancelRen').onclick = hideModal;
-      id('saveRen').onclick = ()=>{
-        const nn = id('newName').value.trim(); if(!nn) return alert('Nhập tên!'); const users = readJSON(KEY_USERS,{}); users[currentUser.email].name = nn; writeJSON(KEY_USERS, users); currentUser.name = nn; id('playerName').textContent = nn; renderLeaderboard(); hideModal(); localStorage.setItem('caro_demo_signal','rename-'+Date.now());
-      }
-    });
-
-    id('btnFindRoom').addEventListener('click', ()=>{
-      showModal(`<h3>Tìm phòng</h3><div class='small'>Nhập mã phòng 5 chữ số:</div><input id='roomFind' placeholder='12345' style='width:100%;padding:8px;border-radius:6px'><div style='height:8px'></div><div style='display:flex;gap:8px;justify-content:flex-end'><button class='btn secondary' id='cancelFind'>Hủy</button><button class='btn' id='doFind'>Tìm</button></div>`);
-      id('cancelFind').onclick = hideModal;
-      id('doFind').onclick = ()=>{ const c=id('roomFind').value.trim(); if(!c) return; hideModal(); joinRoom(c); }
-    });
-
-    id('btnCreateRoom').addEventListener('click', ()=>{
-      const users = readJSON(KEY_USERS,{}); const me=users[currentUser.email]; ensureDailyReset(me); if(me.score<=0){ alert('Điểm hạng ≤ 0 nên không thể tạo phòng hoặc tìm trận.'); return; }
-      const rooms = getRooms(); let code = randomCode(); while(rooms[code]) code = randomCode();
-      rooms[code] = {players:[currentUser.email], host:currentUser.email, board: Array(24*24).fill(0), turn:null, lastMove:null, started:false, winner:null, created:Date.now()};
-      setRooms(rooms); localStorage.setItem('caro_demo_signal','rooms-'+Date.now());
-      openGame(code);
-    });
-
-    id('btnFindRandom').addEventListener('click', ()=>{
-      const users = readJSON(KEY_USERS,{}); const me=users[currentUser.email]; ensureDailyReset(me); if(me.score<=0){ alert('Bạn có ≤0 điểm hạng. Không thể tìm trận.'); return; }
-      const rooms = getRooms(); // find a room with 1 player
-      const candidate = Object.keys(rooms).find(c=>rooms[c].players.length===1);
-      if(candidate) return joinRoom(candidate);
-      // otherwise create
-      id('btnCreateRoom').click();
-    });
-
-    // join room
-    function joinRoom(code){
-      const rooms = getRooms(); if(!rooms[code]) return alert('Phòng không tồn tại');
-      const r = rooms[code]; if(r.players.includes(currentUser.email)) return openGame(code);
-      if(r.players.length>=2) return alert('Phòng đã đủ 2 người');
-      r.players.push(currentUser.email);
-      // assign turn to host if not set
-      if(!r.turn) r.turn = r.players[0];
-      r.started = r.players.length===2;
-      setRooms(rooms); localStorage.setItem('caro_demo_signal','rooms-'+Date.now());
-      openGame(code);
-    }
-
-    // modal helpers
-    function showModal(html){ id('modalContent').innerHTML = html; id('overlay').style.display='flex'; }
-    function hideModal(){ id('overlay').style.display='none'; id('modalContent').innerHTML=''; }
-
-    // --- Game UI ---
-    let currentRoom=null;
-    const GRID_N = 24; const CENTER = Math.floor(GRID_N/2); const LOCK_INDEX = CENTER*GRID_N + CENTER;
-
-    function openGame(code){
-      lobbyView.style.display='none'; gameView.style.display='block'; loginView.style.display='none';
-      currentRoom = code; id('roomCodeTitle').textContent = 'Phòng: '+code; renderGame();
-    }
-
-    id('btnBackToLobby').addEventListener('click', ()=>{
-      currentRoom = null; gameView.style.display='none'; lobbyView.style.display='block'; renderRoomList(); renderLeaderboard(); updateStatus('Về sảnh chờ');
-    });
-
-    // renderboard
-    function renderGame(){
-      const rooms = getRooms(); const r = rooms[currentRoom]; if(!r) return alert('Phòng không tồn tại');
-      id('playersInRoom').textContent = `${r.players.length}/2`;
-      id('hostName').textContent = (readJSON(KEY_USERS,{})[r.host]||{}).name||r.host;
-      id('startedFlag').textContent = r.started? 'Có':'Không';
-      id('gameStatus').textContent = r.winner?('Kết thúc — '+(readJSON(KEY_USERS,{})[r.winner]||{}).name+' thắng'):(r.started?'Đang chơi':'Chờ người thứ 2');
-
-      // grid
-      const gridEl = id('grid'); gridEl.innerHTML='';
-      for(let y=0;y<GRID_N;y++){
-        for(let x=0;x<GRID_N;x++){
-          const idx = y*GRID_N + x; const cell = document.createElement('div'); cell.className='cell'; cell.dataset.idx = idx;
-          if(idx==LOCK_INDEX) cell.classList.add('lock');
-          // stone
-          const val = r.board[idx]; if(val){ const s = document.createElement('div'); s.className='stone '+(val===1?'black':'white'); cell.appendChild(s); }
-          // highlight initial adjacent when empty
-          if(!r.board.some(v=>v!==0) && Math.abs(x-CENTER)<=1 && Math.abs(y-CENTER)<=1 && !(x===CENTER && y===CENTER)){
-            cell.classList.add('highlight');
-          }
-          // last move
-          if(r.lastMove===idx) cell.classList.add('last');
-
-          cell.addEventListener('click', ()=>onCellClick(idx));
-          gridEl.appendChild(cell);
-        }
-      }
-
-      // player list
-      const plBox = id('playerListBox'); plBox.innerHTML='';
-      r.players.forEach((e,i)=>{const u = readJSON(KEY_USERS,{})[e]||{name:e}; const div = document.createElement('div'); div.className='small'; div.textContent = `${i+1}. ${u.name} ${e===r.turn? '(Đang đánh)':''}`; plBox.appendChild(div);});
-
-      // timer
-      renderTurnTimer();
-    }
-
-    // cell click logic
-    function onCellClick(idx){
-      const rooms = getRooms(); const r = rooms[currentRoom]; if(!r) return;
-      if(!r.started) return alert('Trận chưa bắt đầu (cần 2 người)');
-      if(r.winner) return alert('Trận đã kết thúc');
-      if(r.turn !== currentUser.email) return alert('Chưa tới lượt bạn');
-      if(idx===LOCK_INDEX) return; // lock
-      if(r.board[idx]!==0) return; // occupied
-
-      // first move restriction: if board empty then only near lock allowed (Manhattan <=2)
-      const anyPlaced = r.board.some(v=>v!==0);
-      const x = idx % GRID_N, y = Math.floor(idx/GRID_N);
-      const cx = CENTER, cy = CENTER; const manhattan = Math.abs(x-cx)+Math.abs(y-cy);
-      if(!anyPlaced && manhattan>2) return alert('Con cờ đầu chỉ được đánh gần ô LOCK (trong bán kính Manhattan ≤2).');
-
-      // place stone: assign 1 for host first player, 2 for 2nd
-      const playerIdx = r.players.indexOf(currentUser.email);
-      const val = playerIdx===0?1:2; r.board[idx]=val; r.lastMove = idx;
-      clickSound();
-      // switch turn
-      r.turn = r.players.find(p=>p!==currentUser.email) || r.turn;
-      // start timer if first move
-      if(!r.timerStart && !anyPlaced){ r.timerStart = Date.now(); }
-      // check win
-      const winner = checkWin(r.board, idx, val);
-      if(winner){ r.winner = currentUser.email; r.started=false; // adjust scores
-        const users = readJSON(KEY_USERS,{}); users[currentUser.email].score = (users[currentUser.email].score||0) + 1; // win +1
-        // loser
-        const loser = r.players.find(p=>p!==currentUser.email); if(loser){ users[loser].score = (users[loser].score||0) - 1; }
-        writeJSON(KEY_USERS, users);
-      }
-      // update
-      rooms[currentRoom]=r; setRooms(rooms); localStorage.setItem('caro_demo_signal','rooms-'+Date.now());
-      renderGame();
-      renderLeaderboard();
-    }
-
-    // win check for 5 in a row
-    function checkWin(board, idx, val){
-      const x = idx % GRID_N, y = Math.floor(idx/GRID_N);
-      const directions = [[1,0],[0,1],[1,1],[1,-1]];
-      for(const [dx,dy] of directions){
-        let count=1;
-        // forward
-        for(let s=1;s<5;s++){ const nx=x+dx*s, ny=y+dy*s; if(nx<0||nx>=GRID_N||ny<0||ny>=GRID_N) break; if(board[ny*GRID_N+nx]===val) count++; else break; }
-        // backward
-        for(let s=1;s<5;s++){ const nx=x-dx*s, ny=y-dy*s; if(nx<0||nx>=GRID_N||ny<0||ny>=GRID_N) break; if(board[ny*GRID_N+nx]===val) count++; else break; }
-        if(count>=5) return true;
-      }
-      return false;
-    }
-
-    // --- Turn timer ---
-    let timerInterval=null;
-    function renderTurnTimer(){
-      clearInterval(timerInterval);
-      const rooms = getRooms(); const r = rooms[currentRoom]; if(!r) { id('turnTimer').textContent='-'; return; }
-      if(!r.started || r.winner){ id('turnTimer').textContent='-'; return; }
-      // per-turn 60s stored in r.turnRemaining? We'll store lastMoveTime in r.lastMoveTime; when a player moves we set lastMoveTime = Date.now(); the next player's 60s starts on move.
-      if(!r.lastMoveTime) r.lastMoveTime = Date.now(); // if missing
-      // ensure saved
-      rooms[currentRoom]=r; setRooms(rooms);
-
-      function tick(){
-        const rooms2 = getRooms(); const r2 = rooms2[currentRoom]; if(!r2){ id('turnTimer').textContent='-'; return; }
-        if(r2.winner){ id('turnTimer').textContent='-'; stopTick(); clearInterval(timerInterval); return; }
-        const elapsed = Math.floor((Date.now() - (r2.lastMoveTime||Date.now()))/1000);
-        const remaining = 60 - elapsed; id('turnTimer').textContent = remaining>0? remaining+'s': 'Hết giờ';
-        if(remaining<=10 && remaining>0){ startTick(); } else stopTick();
-        if(remaining<=0){ // timeout -> current turn loses
-          const loser = r2.turn; const winner = r2.players.find(p=>p!==loser);
-          r2.winner = winner || null; r2.started = false;
-          // score adjust
-          const users = readJSON(KEY_USERS,{});
-          if(winner) users[winner].score = (users[winner].score||0)+1;
-          if(loser) users[loser].score = (users[loser].score||0)-1;
-          writeJSON(KEY_USERS,users);
-          rooms2[currentRoom]=r2; setRooms(rooms2); localStorage.setItem('caro_demo_signal','rooms-'+Date.now());
-          stopTick(); clearInterval(timerInterval);
-          renderGame(); renderLeaderboard();
-        }
-      }
-      timerInterval = setInterval(tick,500);
-      tick();
-    }
-
-    // when a player takes an action (join/create/place) we should reset lastMoveTime for the next player
-    // We'll hook into storage event to update lastMoveTime when r.turn changes
-
-    // listen storage events to sync across tabs
-    window.addEventListener('storage', (ev)=>{
-      if(ev.key===KEY_ROOMS || (ev.key && ev.key.startsWith('caro_demo_signal')) ){
-        // re-render depending on view
-        if(lobbyView.style.display!=='none'){
-          renderRoomList(); renderLeaderboard();
-        }
-        if(gameView.style.display!=='none' && currentRoom){
-          // reload room
-          const rooms = getRooms(); const r = rooms[currentRoom]; if(!r) { alert('Phòng đã bị xóa'); return; }
-          // if turn changed, set lastMoveTime for new turn
-          renderGame();
-        }
-      }
-    });
-
-    // ensure that when anybody moves we set lastMoveTime to now (so next player's timer resets)
-    // We'll override setRooms to also ensure lastMoveTime on change. But simpler: when clicking we set lastMoveTime earlier.
-    // Add a mutation: Whenever rooms change (in this tab) update UI
-    window.addEventListener('beforeunload', ()=>{ /* no-op */ });
-
-    // expose global for debugging
-    window.CaroDemo = {readJSON, writeJSON, getRooms, KEY_USERS, KEY_ROOMS};
-
-    // initial render when loaded
-    // If user already in localStorage? not persisted
-    // Show login
-    // small helper to update status
-    function updateStatus(txt){ id('statusBox').textContent = txt; }
-
-  })();
-  </script>
+</script>
 </body>
 </html>
