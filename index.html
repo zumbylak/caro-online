@@ -3,453 +3,406 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Cờ CARO ONLINE — Demo</title>
+  <title>Cờ CARO ONLINE — Demo (Notepad++)</title>
   <style>
-    :root{--bg:#0f172a;--card:#0b1220;--accent:#0ea5a4;--muted:#94a3b8;--danger:#ef4444}
-    *{box-sizing:border-box;font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
-    html,body,#app{height:100%;margin:0;background:linear-gradient(180deg,#061024 0%, #071331 100%);color:#e6eef6}
-    .container{max-width:1100px;margin:24px auto;padding:20px}
-    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:18px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
+    :root{--bg:#0f172a;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--good:#16a34a;--bad:#ef4444}
+    *{box-sizing:border-box;font-family:Inter, system-ui, Arial}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071126,var(--bg));color:#e6eef6}
+    .wrap{max-width:1100px;margin:24px auto;padding:20px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:18px;border-radius:12px;box-shadow:0 6px 30px rgba(2,6,23,0.6)}
     header{display:flex;align-items:center;gap:12px}
     header h1{margin:0;font-size:20px}
-    .small{font-size:13px;color:var(--muted)}
+
+    /* Layout */
+    .screen{display:none}
+    .screen.active{display:block}
 
     /* Login */
-    .center{display:flex;align-items:center;justify-content:center;height:60vh}
-    .btn{background:var(--accent);color:#012;padding:10px 14px;border-radius:8px;border:none;cursor:pointer;font-weight:600}
+    .login-center{display:flex;gap:20px;align-items:center}
+    .btn{background:var(--accent);border:none;padding:10px 14px;border-radius:8px;color:#022;cursor:pointer;font-weight:600}
     .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted)}
 
-    /* lobby */
-    .row{display:flex;gap:12px}
-    .col{flex:1}
-    .lobby-actions{display:flex;flex-direction:column;gap:12px;margin-top:12px}
+    /* Lobby */
+    .lobby-grid{display:grid;grid-template-columns:1fr 360px;gap:14px;margin-top:14px}
+    .room-list{height:520px;overflow:auto;padding:10px;border-radius:8px;border:1px dashed rgba(255,255,255,0.03)}
+    .room{display:flex;justify-content:space-between;padding:8px;border-radius:6px;margin-bottom:8px;background:rgba(255,255,255,0.01)}
 
-    /* modal */
-    .modal-backdrop{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center}
-    .modal{background:var(--card);padding:16px;border-radius:10px;width:320px}
-    .modal.show{display:flex}
+    .controls{display:flex;gap:8px;margin-bottom:8px}
+    input[type=text]{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
 
-    /* board */
-    .board-wrap{display:flex;gap:16px}
-    .board{display:grid;grid-template-columns:repeat(24,24px);grid-template-rows:repeat(24,24px);gap:2px;padding:8px;background:rgba(255,255,255,0.02);border-radius:8px}
-    .cell{width:24px;height:24px;border-radius:4px;background:rgba(255,255,255,0.01);display:flex;align-items:center;justify-content:center;font-size:12px;position:relative;cursor:pointer}
-    .cell.lock{background:linear-gradient(180deg,rgba(239,68,68,0.14),rgba(239,68,68,0.06));cursor:not-allowed}
-    .cell.highlight{box-shadow:0 0 0 2px rgba(14,165,164,0.5) inset}
-    .cell.last-move{outline:2px solid rgba(234,179,8,0.9);border-radius:3px}
-    .stone.black{width:18px;height:18px;border-radius:50%;background:#111}
-    .stone.white{width:18px;height:18px;border-radius:50%;background:#fff}
+    /* Leaderboard */
+    .leader{margin-top:8px;padding:8px;border-radius:8px;background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))}
+    .leader div{display:flex;justify-content:space-between}
 
-    .status{padding:8px;border-radius:8px;background:rgba(255,255,255,0.02)}
-    .code{font-weight:700;letter-spacing:2px;font-size:18px}
+    /* Game */
+    .board-wrap{display:flex;gap:18px;align-items:flex-start}
+    .board{display:grid;grid-template-columns:repeat(24,28px);grid-template-rows:repeat(24,28px);gap:1px;padding:6px;background:#0b1220;border-radius:8px}
+    .cell{width:28px;height:28px;background:#071423;display:flex;align-items:center;justify-content:center;border-radius:4px;position:relative;cursor:pointer}
+    .cell.lock{background:#02111a;cursor:not-allowed;opacity:0.6}
+    .cell.highlight{outline:2px solid rgba(6,182,212,0.7)}
+    .cell.last{box-shadow:0 0 0 2px rgba(99,102,241,0.45) inset}
+    .stone{width:20px;height:20px;border-radius:50%}
+    .stone.x{background:#f8fafc}
+    .stone.o{background:#111827}
 
-    footer{margin-top:14px;color:var(--muted);font-size:13px}
+    .side{width:320px}
+    .meta{display:flex;justify-content:space-between;align-items:center}
+    .timer{font-size:28px;font-weight:700}
 
-    /* responsive */
-    @media (max-width:880px){.board{transform:scale(0.8);transform-origin:left top}}
+    footer{margin-top:16px;color:var(--muted);font-size:13px}
+
+    /* small */
+    @media(max-width:1000px){.lobby-grid{grid-template-columns:1fr}} 
   </style>
 </head>
 <body>
-  <div id="app" class="container card">
-    <header>
-      <div style="font-size:28px">♟️</div>
-      <div>
-        <h1>Cờ CARO ONLINE — Demo</h1>
-        <div class="small">Phiên bản demo (chạy thuần client, sync giữa các tab bằng localStorage)</div>
+  <div class="wrap">
+    <div class="card">
+      <header>
+        <img src="" alt="logo" style="width:44px;height:44px;border-radius:8px;background:linear-gradient(90deg,#06b6d4,#7c3aed)">
+        <h1>Cờ CARO ONLINE (Demo) - Notepad++</h1>
+      </header>
+
+      <!-- Screens: login, lobby, game -->
+      <div id="login" class="screen active card" style="margin-top:12px">
+        <h2>Đăng nhập</h2>
+        <p>Đăng nhập bằng Google (yêu cầu Client ID &amp; HTTPS). Nếu không có, dùng đăng nhập tạm bằng tên.</p>
+        <div style="display:flex;gap:12px;align-items:center;margin-top:8px">
+          <!-- Google button placeholder. Replace CLIENT_ID in the script to enable Google Identity Services -->
+          <div id="g_id_onload" style="display:none"></div>
+          <button id="fakeGoogle" class="btn">Đăng nhập bằng Google (demo)</button>
+          <button id="guest" class="btn ghost">Đăng nhập bằng tên</button>
+        </div>
+        <div style="margin-top:12px">
+          <label>Tên (mặc định lấy từ gmail nếu dùng Google)</label><br>
+          <input id="manualName" type="text" placeholder="Nhập tên..." />
+        </div>
       </div>
-    </header>
 
-    <!-- Views (SPA single file) -->
-    <main id="views">
-      <!-- Login view -->
-      <section id="view-login" class="center">
-        <div style="max-width:520px;width:100%;text-align:center">
-          <h2>Đăng nhập bằng Google (demo)</h2>
-          <p class="small">Nhấn nút đăng nhập: trình demo sẽ lấy email từ credential JWT Google (cần CLIENT_ID thật để hoạt động)</p>
-          <div style="display:flex;gap:12px;justify-content:center;margin-top:18px">
-            <button id="btn-google" class="btn">Đăng nhập với Google</button>
-            <button id="btn-guest" class="btn ghost">Đăng nhập Guest</button>
-          </div>
-          <p class="small" style="margin-top:10px">Lưu ý: trong môi trường demo, bạn có thể dùng <b>Guest</b> để test nhanh.</p>
-        </div>
-      </section>
-
-      <!-- Lobby view -->
-      <section id="view-lobby" style="display:none">
-        <div class="row">
-          <div class="col">
-            <div class="card">
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <div>
-                  <div id="player-name" style="font-weight:700;font-size:16px">-</div>
-                  <div class="small">Điểm hạng: <span id="player-rating">-</span></div>
-                </div>
-                <div style="text-align:right">
-                  <div class="small">Mã phòng hiện tại</div>
-                  <div class="code" id="current-room">—</div>
-                </div>
-              </div>
-
-              <div class="lobby-actions">
-                <button id="btn-random" class="btn">Tìm Ngẫu Nhiên</button>
-                <button id="btn-create" class="btn">Tạo Phòng</button>
-                <button id="btn-find" class="btn">Tìm Phòng</button>
-                <button id="btn-rename" class="btn ghost">Đổi Tên</button>
-              </div>
-            </div>
-          </div>
-          <div class="col">
-            <div class="card status">
-              <div style="display:flex;justify-content:space-between;align-items:center">
-                <div><div class="small">Trạng thái phòng</div><div id="rooms-list">Không có phòng</div></div>
-                <div style="text-align:right"><div class="small">Hướng dẫn</div><div class="small">Mở 2 tab để thử chơi online (demo)</div></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Game view -->
-      <section id="view-game" style="display:none;margin-top:12px">
-        <div style="display:flex;gap:12px;align-items:flex-start">
+      <div id="lobby" class="screen card" style="margin-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
           <div>
-            <div class="card board-wrap">
-              <div>
-                <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-                  <div class="small">Mã phòng:</div><div class="code" id="game-room-code">00000</div>
-                  <div style="margin-left:12px" class="small">Người chơi: <span id="p1-name">-</span> vs <span id="p2-name">-</span></div>
-                </div>
-                <div id="board" class="board"></div>
-              </div>
-            </div>
+            <strong id="playerName">-</strong>
+            <div style="font-size:13px;color:var(--muted)">Điểm hạng: <span id="rankPoints">-</span></div>
           </div>
-          <div style="width:260px">
-            <div class="card status">
-              <div style="margin-bottom:10px"><b>Trạng thái</b></div>
-              <div>Lượt: <span id="turn-player">—</span></div>
-              <div style="margin-top:8px">Thời gian lượt: <span id="timer">60</span> giây</div>
-              <div style="margin-top:8px">Thời gian tổng: <span id="total-status">—</span></div>
-              <div style="margin-top:8px">Trạng thái kết nối: <span id="conn-status">waiting</span></div>
-              <div style="margin-top:10px;display:flex;gap:8px">
-                <button id="btn-join" class="btn">Tham gia phòng</button>
-                <button id="btn-leave" class="btn ghost">Rời phòng</button>
+          <div>
+            <button id="btnFindRandom" class="btn">Tìm Ngẫu Nhiên</button>
+            <button id="btnCreateRoom" class="btn ghost">Tạo Phòng</button>
+            <button id="btnFindRoom" class="btn ghost">Tìm Phòng</button>
+            <button id="btnRename" class="btn ghost">Đổi Tên</button>
+          </div>
+        </div>
+
+        <div class="lobby-grid">
+          <div>
+            <div class="controls">
+              <input id="roomCodeInput" type="text" placeholder="Mã phòng (5 chữ số)" />
+              <button id="joinByCode" class="btn">Vào</button>
+            </div>
+            <div style="font-size:13px;color:var(--muted)">Danh sách phòng có 1 người (tự động cập nhật):</div>
+            <div id="rooms" class="room-list"></div>
+          </div>
+
+          <div class="side">
+            <div class="card" style="padding:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <strong>Bảng xếp hạng (Top 10)</strong>
+                <button id="refreshBoard" class="btn ghost">Tải</button>
               </div>
-              <div style="margin-top:12px" class="small">Ghi chú:
-                <ul>
-                  <li>Ô lock: ô giữa (đã chọn ô (12,12) 1-index), ô này không thể đánh.</li>
-                  <li>Lượt đầu chỉ được đánh gần ô lock (khoảng cách Manhattan ≤ 2).</li>
-                  <li>Bộ đếm 60s mỗi lượt; hết giờ => thua.</li>
-                </ul>
-              </div>
+              <div id="leaderboard" class="leader"></div>
+            </div>
+            <div style="margin-top:10px" class="card">
+              <div style="font-size:13px;color:var(--muted)">Mẹo:</div>
+              <ul style="margin:6px 0 0 18px;color:var(--muted)">
+                <li>Bàn cờ 24x24, ô giữa là ô lock không được đánh.</li>
+                <li>Con cờ đầu tiên phải đánh ở ô liền kề ô lock.</li>
+                <li>Người chơi được +1 / -1 điểm hạng khi thắng/thua. Reset về 10 mỗi ngày.</li>
+              </ul>
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
-    </main>
+      <div id="game" class="screen card" style="margin-top:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <button id="backToLobby" class="btn ghost">← Trở về sảnh</button>
+          </div>
+          <div class="meta">
+            <div><strong id="roomLabel">Phòng: -</strong><div style="font-size:12px;color:var(--muted)" id="playerRole"></div></div>
+            <div class="timer" id="turnTimer">--</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:12px">
+          <div class="board-wrap">
+            <div id="board" class="board"></div>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-left:10px">
+              <div style="background:rgba(255,255,255,0.02);padding:8px;border-radius:8px">Lượt: <span id="turnInfo">-</span></div>
+              <div style="background:rgba(255,255,255,0.02);padding:8px;border-radius:8px">Trạng thái: <span id="status">Chưa bắt đầu</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-    <footer>Demo client-only — sync giữa tab bằng localStorage. Để tích hợp Google Sign-In thật, thay CLIENT_ID vào mã và cấu hình OAuth trên Google Cloud.</footer>
-  </div>
-
-  <!-- Modal backdrop -->
-  <div id="modal" class="modal-backdrop">
-    <div class="modal">
-      <div id="modal-body"></div>
+      <footer>Ghi chú: Đây là bản demo chạy hoàn toàn trên trình duyệt (localStorage). Để chơi mạng thật cần server hoặc WebRTC. File hoạt động offline (ngoại trừ Google Sign-In yêu cầu HTTPS).</footer>
     </div>
   </div>
 
   <script>
-    /* ---------- Configuration ---------- */
-    const CLIENT_ID = 'PUT_YOUR_GOOGLE_CLIENT_ID_HERE'; // Thay bằng client id nếu muốn dùng Google thật
+  /* --------- Utilities & Data Layer (localStorage based demo) --------- */
+  const STORAGE = {
+    USERS: 'caro_users_v1',
+    ROOMS: 'caro_rooms_v1'
+  }
 
-    /* ---------- Utility ---------- */
-    function uid() { return Math.floor(10000 + Math.random()*90000).toString(); }
-    function randRoom(){ return Math.floor(10000 + Math.random()*90000).toString(); }
-    function nowDateStr(){ return new Date().toISOString().slice(0,10); }
+  function loadJSON(key, def){try{return JSON.parse(localStorage.getItem(key))||def}catch(e){return def}}
+  function saveJSON(key,val){localStorage.setItem(key, JSON.stringify(val))}
 
-    /* ---------- Local account management (simple) ---------- */
-    function loadAccount(){
-      let acc = JSON.parse(localStorage.getItem('caro_account')||'null');
-      const today = nowDateStr();
-      if(!acc) return null;
-      // reset daily rating to 10 if lastReset < today
-      if(!acc.lastReset || acc.lastReset !== today){ acc.rating = 10; acc.lastReset = today; localStorage.setItem('caro_account', JSON.stringify(acc)); }
-      return acc;
-    }
-    function saveAccount(acc){ localStorage.setItem('caro_account', JSON.stringify(acc)); }
+  // users: {emailOrId: {name, points, lastReset: 'YYYY-MM-DD'}}
+  const db = {
+    users: loadJSON(STORAGE.USERS, {}),
+    rooms: loadJSON(STORAGE.ROOMS, {})
+  }
 
-    /* login handlers */
-    const btnGoogle = document.getElementById('btn-google');
-    const btnGuest = document.getElementById('btn-guest');
-    btnGuest.addEventListener('click', ()=>{
-      const randomEmail = 'guest'+Math.floor(Math.random()*90000)+'@guest.local';
-      const acc = {id:uid(),email:randomEmail,name:randomEmail.split('@')[0],rating:10,lastReset:nowDateStr()};
-      saveAccount(acc); showLobby(acc);
-    });
+  function todayStr(){const d=new Date();return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()}
 
-    btnGoogle.addEventListener('click', ()=>{
-      // For demo: prompt user to paste a google email (since real Google flow requires setup)
-      const email = prompt('Demo Google: nhập email để giả lập đăng nhập (hoặc để trống hủy)');
-      if(!email) return;
-      const name = email.split('@')[0];
-      const acc = {id:uid(),email,name,rating:10,lastReset:nowDateStr()};
-      saveAccount(acc); showLobby(acc);
-    });
-
-    /* ---------- Modal helpers ---------- */
-    const modal = document.getElementById('modal');
-    function openModal(html){ document.getElementById('modal-body').innerHTML = html; modal.style.display='flex'; }
-    function closeModal(){ modal.style.display='none'; }
-    modal.addEventListener('click', (e)=>{ if(e.target===modal) closeModal(); });
-
-    /* ---------- Lobby UI ---------- */
-    const viewLogin = document.getElementById('view-login');
-    const viewLobby = document.getElementById('view-lobby');
-    const viewGame  = document.getElementById('view-game');
-    const playerNameEl = document.getElementById('player-name');
-    const playerRatingEl = document.getElementById('player-rating');
-    const currentRoomEl = document.getElementById('current-room');
-    const roomsListEl = document.getElementById('rooms-list');
-
-    function renderRooms(){
-      const rooms = JSON.parse(localStorage.getItem('caro_rooms')||'{}');
-      const keys = Object.keys(rooms);
-      if(keys.length===0) roomsListEl.textContent = 'Không có phòng';
-      else roomsListEl.innerHTML = keys.map(k=>`<div><b>${k}</b> — ${rooms[k].players.length}/2</div>`).join('');
-    }
-
-    function showLobby(acc){
-      viewLogin.style.display='none'; viewGame.style.display='none'; viewLobby.style.display='block';
-      playerNameEl.textContent = acc.name; playerRatingEl.textContent = acc.rating; currentRoomEl.textContent = '-';
-      renderRooms();
-    }
-
-    // On load, try to restore account
-    let account = loadAccount();
-    if(account) showLobby(account);
-
-    // Lobby buttons
-    document.getElementById('btn-rename').addEventListener('click', ()=>{
-      openModal(`<div><h3>Đổi tên</h3><input id='rename-input' style='width:100%;padding:8px;margin-top:8px' value='${account?account.name:''}'/><div style='display:flex;gap:8px;margin-top:10px'><button id='r-ok' class='btn'>Lưu</button><button id='r-c' class='btn ghost'>Hủy</button></div></div>`);
-      document.getElementById('r-ok').addEventListener('click', ()=>{
-        const v = document.getElementById('rename-input').value.trim(); if(!v) return alert('Tên trống'); account.name = v; saveAccount(account); playerNameEl.textContent = v; closeModal();
-      });
-      document.getElementById('r-c').addEventListener('click', closeModal);
-    });
-
-    document.getElementById('btn-create').addEventListener('click', ()=>{
-      if(!account) return alert('Chưa đăng nhập');
-      const code = randRoom();
-      // create room structure in localStorage
-      const rooms = JSON.parse(localStorage.getItem('caro_rooms')||'{}');
-      rooms[code] = {code,players:[{id:account.id,name:account.name,isReady:false}],board:null,turn:null,history:[],created:Date.now()};
-      localStorage.setItem('caro_rooms', JSON.stringify(rooms));
-      currentRoomEl.textContent = code;
-      openGame(code);
-      renderRooms();
-    });
-
-    document.getElementById('btn-find').addEventListener('click', ()=>{
-      openModal(`<div><h3>Tìm Phòng theo mã</h3><input id='find-input' style='width:100%;padding:8px;margin-top:8px' placeholder='Nhập mã 5 chữ số'/><div style='display:flex;gap:8px;margin-top:10px'><button id='f-go' class='btn'>Tìm</button><button id='f-c' class='btn ghost'>Hủy</button></div></div>`);
-      document.getElementById('f-go').addEventListener('click', ()=>{
-        const v = document.getElementById('find-input').value.trim(); if(!v) return; const rooms = JSON.parse(localStorage.getItem('caro_rooms')||'{}');
-        if(!rooms[v]) return alert('Không tìm thấy mã phòng'); closeModal(); openGame(v);
-      });
-      document.getElementById('f-c').addEventListener('click', closeModal);
-    });
-
-    document.getElementById('btn-random').addEventListener('click', ()=>{
-      // find random room with space
-      const rooms = JSON.parse(localStorage.getItem('caro_rooms')||'{}');
-      const keys = Object.keys(rooms).filter(k=>rooms[k].players.length<2);
-      if(keys.length===0) return alert('Không có phòng trống, hãy tạo phòng');
-      openGame(keys[Math.floor(Math.random()*keys.length)]);
-    });
-
-    /* ---------- Game logic (client-only demo using localStorage to sync between tabs) ---------- */
-    const boardEl = document.getElementById('board');
-    const gameRoomCodeEl = document.getElementById('game-room-code');
-    const p1NameEl = document.getElementById('p1-name');
-    const p2NameEl = document.getElementById('p2-name');
-    const turnPlayerEl = document.getElementById('turn-player');
-    const timerEl = document.getElementById('timer');
-    const connStatusEl = document.getElementById('conn-status');
-    const btnJoin = document.getElementById('btn-join');
-    const btnLeave = document.getElementById('btn-leave');
-
-    let room=null; let myPlayerIndex=null; let grid=[]; const SIZE=24; // 24x24 board
-    const LOCK_POS = {r:12,c:12}; // For even grid we pick (12,12) as the "ô giữa" (1-indexed description). Implementation uses 0-based internal indices 0..23 and chooses center cell at (11,11) visually, but for simplicity we use 12 here (users can adapt).
-
-    // We'll store rooms in localStorage under 'caro_rooms'. Each room: {code,players:[{id,name}],board,turn,history,lastMove,created}
-
-    function openGame(code){
-      const rooms = JSON.parse(localStorage.getItem('caro_rooms')||'{}');
-      if(!rooms[code]){
-        // create fresh if missing
-        rooms[code] = {code,players:[],board:Array(SIZE*SIZE).fill(0),turn:null,history:[],lastMove:null,created:Date.now(),timer:60,turnDeadline:null};
-        localStorage.setItem('caro_rooms', JSON.stringify(rooms));
+  function ensureUser(id, name){
+    if(!db.users[id]){
+      db.users[id] = {name:name||id, points:10, lastReset: todayStr()}
+      saveJSON(STORAGE.USERS, db.users)
+    } else {
+      // reset daily
+      if(db.users[id].lastReset !== todayStr()){
+        db.users[id].points = 10
+        db.users[id].lastReset = todayStr()
+        saveJSON(STORAGE.USERS, db.users)
       }
-      room = rooms[code];
-      gameRoomCodeEl.textContent = code; currentRoomEl.textContent = code;
-      viewLobby.style.display='none'; viewGame.style.display='block';
-      renderBoard(); updateRoomInfo();
     }
+  }
 
-    function updateRoomInfo(){
-      const rooms = JSON.parse(localStorage.getItem('caro_rooms')||'{}');
-      if(!room) return; room = rooms[room.code];
-      p1NameEl.textContent = room.players[0]?room.players[0].name:'—'; p2NameEl.textContent = room.players[1]?room.players[1].name:'—';
-      connStatusEl.textContent = room.players.length<2? 'waiting' : 'ready';
-      // set my index
-      const acc = loadAccount();
-      if(acc && room.players.findIndex(p=>p.id===acc.id)!==-1) myPlayerIndex = room.players.findIndex(p=>p.id===acc.id); else myPlayerIndex = null;
-      // turn display
-      turnPlayerEl.textContent = room.turn!==null ? (room.turn===0? (room.players[0]?room.players[0].name:'-') : (room.players[1]?room.players[1].name:'-')) : '-';
-      renderBoard();
+  function updateLeaderboard(){
+    const arr = Object.entries(db.users).map(([k,v])=>({id:k,name:v.name,points:v.points}));
+    arr.sort((a,b)=>b.points-a.points);
+    const top = arr.slice(0,10);
+    const el = document.getElementById('leaderboard'); el.innerHTML='';
+    top.forEach((p,i)=>{
+      const div = document.createElement('div'); div.style.padding='6px 0'; div.innerHTML = `<div style="display:flex;justify-content:space-between"><div>${i+1}. ${escapeHtml(p.name)}</div><div>${p.points}</div></div>`;
+      el.appendChild(div);
+    })
+  }
+
+  function escapeHtml(s){return (s||'').toString().replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[c])}
+
+  // rooms: {code: {players: [id], board: [], status:'waiting'|'playing'|'finished', turn:'x'|'o', lastMove:{r,c}, createdAt:ms}}
+  function saveRooms(){ saveJSON(STORAGE.ROOMS, db.rooms) }
+
+  function genCode(){return String(Math.floor(10000 + Math.random()*90000))}
+
+  // Sync with other tabs (very simple) - listen to storage events
+  window.addEventListener('storage', (e)=>{ if(e.key===STORAGE.ROOMS || e.key===STORAGE.USERS){ db.rooms = loadJSON(STORAGE.ROOMS, {}); db.users = loadJSON(STORAGE.USERS, {}); renderRooms(); updateLeaderboard(); renderLobbyPlayer(); } })
+
+  /* --------- Sounds via WebAudio (click and ticking) --------- */
+  const AUD= new (window.AudioContext||window.webkitAudioContext)();
+  function clickSound(){const o=AUD.createOscillator(),g=AUD.createGain(); o.type='square'; o.frequency.value=800; g.gain.value=0.02; o.connect(g); g.connect(AUD.destination); o.start(); o.stop(AUD.currentTime+0.04)}
+  function tickSound(){const o=AUD.createOscillator(),g=AUD.createGain(); o.type='sine'; o.frequency.value=1200; g.gain.value=0.01; o.connect(g); g.connect(AUD.destination); o.start(); o.stop(AUD.currentTime+0.08)}
+
+  /* --------- UI logic --------- */
+  let currentUserId = null
+  let currentRoom = null
+  let currentRole = null // 'x' or 'o'
+  let turnTimerInterval = null
+  let turnRemaining = 60
+
+  function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
+
+  // Login controls
+  document.getElementById('fakeGoogle').addEventListener('click', ()=>{
+    const fakeEmail = 'user'+Math.floor(Math.random()*999)+'@demo.local'
+    const name = 'user'+Math.floor(Math.random()*999)
+    loginSuccess(fakeEmail,name)
+  })
+  document.getElementById('guest').addEventListener('click', ()=>{
+    const name = (document.getElementById('manualName').value || 'Khách')
+    const id = 'guest_'+name+Math.floor(Math.random()*9999)
+    loginSuccess(id,name)
+  })
+
+  function loginSuccess(id, name){ currentUserId = id; ensureUser(id,name); db.users[id].name = name; saveJSON(STORAGE.USERS, db.users); renderLobby(); showScreen('lobby'); }
+
+  function renderLobby(){ renderLobbyPlayer(); renderRooms(); updateLeaderboard(); }
+  function renderLobbyPlayer(){ document.getElementById('playerName').textContent = (db.users[currentUserId] && db.users[currentUserId].name) || '-' ; document.getElementById('rankPoints').textContent = (db.users[currentUserId] && db.users[currentUserId].points) || '-' }
+
+  // Rooms list
+  function renderRooms(){ const container = document.getElementById('rooms'); container.innerHTML='';
+    for(const [code,room] of Object.entries(db.rooms)){
+      if(room.players.length===1 && room.status==='waiting'){
+        const div=document.createElement('div'); div.className='room'; div.innerHTML = `<div>${code} — ${escapeHtml(room.players[0].name||room.players[0])}</div><div><button class='btn joinRoom' data-code='${code}'>Vào</button></div>`
+        container.appendChild(div)
+      }
     }
+    document.querySelectorAll('.joinRoom').forEach(b=>b.addEventListener('click', e=>{ joinRoom(b.dataset.code) }))
+  }
 
-    function renderBoard(){
-      // build grid if needed
-      if(!room) return;
-      boardEl.innerHTML='';
-      const cells = room.board || Array(SIZE*SIZE).fill(0);
-      for(let r=0;r<SIZE;r++){
-        for(let c=0;c<SIZE;c++){
-          const idx = r*SIZE+c; const val = cells[idx];
-          const div = document.createElement('div'); div.className='cell';
-          // lock cell: chose center-ish position (r===11 && c===11) could be used; here we pick (11,11) in 0-based to be "middle"
-          if(r===11 && c===11){ div.classList.add('lock'); div.title='LOCK (không thể đánh)'; }
-          // highlight neighbors before any move
-          if((room.history||[]).length===0){ const mr=11,mc=11; if(Math.abs(r-mr)+Math.abs(c-mc)<=1) div.classList.add('highlight'); }
+  // Create room
+  document.getElementById('btnCreateRoom').addEventListener('click', ()=>{
+    const code = genCode();
+    db.rooms[code] = {players:[{id:currentUserId,name:db.users[currentUserId].name}], board: Array(24*24).fill(null), status:'waiting', turn:'x', lastMove:null, createdAt:Date.now()}
+    saveRooms(); renderRooms(); // go directly to room (waiting)
+    enterRoom(code);
+  })
 
-          if(val===1){ const s=document.createElement('div'); s.className='stone black'; div.appendChild(s); }
-          if(val===2){ const s=document.createElement('div'); s.className='stone white'; div.appendChild(s); }
-          if(room.lastMove===idx) div.classList.add('last-move');
+  document.getElementById('joinByCode').addEventListener('click', ()=>{ const code = document.getElementById('roomCodeInput').value.trim(); if(code) joinRoom(code) })
 
-          div.addEventListener('click', ()=>onCellClick(r,c,idx));
-          boardEl.appendChild(div);
+  function joinRoom(code){ const room = db.rooms[code]; if(!room){alert('Không tìm thấy phòng');return}
+    if(room.players.find(p=>p.id===currentUserId)){ enterRoom(code); return }
+    if(room.players.length>=2){alert('Phòng đã đủ người'); return }
+    room.players.push({id:currentUserId,name:db.users[currentUserId].name}); room.status='playing'; // start game
+    // init board
+    room.board = Array(24*24).fill(null);
+    room.turn = 'x'; room.lastMove=null; saveRooms(); enterRoom(code);
+  }
+
+  function enterRoom(code){ currentRoom = code; const room = db.rooms[code]; // determine role
+    const idx = room.players.findIndex(p=>p.id===currentUserId)
+    currentRole = idx===0 ? 'x' : 'o'
+    document.getElementById('roomLabel').textContent = 'Phòng: '+code
+    document.getElementById('playerRole').textContent = 'Bạn: '+currentRole.toUpperCase()
+    showScreen('game'); renderBoard(); startSyncRoom()
+  }
+
+  document.getElementById('btnFindRandom').addEventListener('click', ()=>{
+    // find any waiting room
+    for(const [code,room] of Object.entries(db.rooms)){
+      if(room.players.length===1 && room.status==='waiting'){ joinRoom(code); return }
+    }
+    // else create one
+    document.getElementById('btnCreateRoom').click()
+  })
+
+  document.getElementById('btnRename').addEventListener('click', ()=>{
+    const newName = prompt('Nhập tên mới', db.users[currentUserId].name)
+    if(newName){ db.users[currentUserId].name = newName; saveJSON(STORAGE.USERS, db.users); renderLobbyPlayer(); updateLeaderboard(); }
+  })
+
+  document.getElementById('backToLobby').addEventListener('click', ()=>{ leaveRoom(); showScreen('lobby'); })
+
+  function leaveRoom(){ if(!currentRoom) return; const room = db.rooms[currentRoom]; if(!room) return; room.players = room.players.filter(p=>p.id!==currentUserId); if(room.players.length===0) delete db.rooms[currentRoom]; else room.status='waiting'; saveRooms(); currentRoom=null; currentRole=null; renderRooms(); }
+
+  // Game rendering
+  function renderBoard(){ const room = db.rooms[currentRoom]; const boardEl = document.getElementById('board'); boardEl.innerHTML='';
+    const N=24; const lockR=Math.floor(N/2), lockC=Math.floor(N/2);
+    for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+      const idx = r*N + c; const cell = document.createElement('div'); cell.className='cell'; cell.dataset.r=r; cell.dataset.c=c;
+      if(r===lockR && c===lockC){ cell.classList.add('lock'); }
+      const val = room.board[idx]; if(val){ const s=document.createElement('div'); s.className='stone '+(val==='x'?'x':'o'); cell.appendChild(s); }
+      // highlight adjacent to lock when empty
+      if(!room.board.some(x=>x!==null)){
+        if(Math.abs(r-lockR)<=1 && Math.abs(c-lockC)<=1 && !(r===lockR && c===lockC)) cell.classList.add('highlight')
+      }
+      // last move
+      if(room.lastMove && room.lastMove.r===r && room.lastMove.c===c) cell.classList.add('last')
+
+      cell.addEventListener('click', ()=>onCellClick(r,c))
+      boardEl.appendChild(cell)
+    }
+    document.getElementById('turnInfo').textContent = room.turn.toUpperCase()
+    document.getElementById('status').textContent = room.status
+  }
+
+  function onCellClick(r,c){ const room = db.rooms[currentRoom]; if(!room) return; if(room.status!=='playing'){alert('Trò chơi chưa bắt đầu');return}
+    const N=24; const idx=r*N+c; if(room.board[idx]) return; const lockR=Math.floor(N/2), lockC=Math.floor(N/2);
+    if(r===lockR && c===lockC) return; // lock cannot be played
+    // if first move overall must be adjacent to lock
+    if(!room.board.some(x=>x!==null)){
+      if(Math.abs(r-lockR)>1 || Math.abs(c-lockC)>1){ alert('Lượt đầu phải đánh gần ô lock'); return }
+    }
+    // check if it's this player's turn
+    const role = currentRole;
+    if(room.turn !== role){ alert('Chưa đến lượt bạn'); return }
+    // make move
+    room.board[idx] = role
+    room.lastMove = {r,c}
+    // switch turn
+    room.turn = (room.turn==='x'?'o':'x')
+    saveRooms(); clickSound(); renderBoard(); checkWinOrDraw(); resetTurnTimerRemote();
+  }
+
+  // Very simple win check (5 in a row) around last move
+  function checkWinOrDraw(){ const room = db.rooms[currentRoom]; const N=24; const lm = room.lastMove; if(!lm) return; const dirs=[[1,0],[0,1],[1,1],[1,-1]]; const me = room.board[lm.r*N+lm.c];
+    for(const d of dirs){ let cnt=1; for(let s=1;s<24;s++){const rr=lm.r+d[0]*s, cc=lm.c+d[1]*s; if(rr<0||rr>=N||cc<0||cc>=N)break; if(room.board[rr*N+cc]===me)cnt++;else break}
+      for(let s=1;s<24;s++){const rr=lm.r-d[0]*s, cc=lm.c-d[1]*s; if(rr<0||rr>=N||cc<0||cc>=N)break; if(room.board[rr*N+cc]===me)cnt++;else break}
+      if(cnt>=5){ room.status='finished'; saveRooms(); renderBoard(); onGameEnd(me); return }
+    }
+    // draw check
+    if(room.board.every(x=>x!==null)){ room.status='finished'; saveRooms(); renderBoard(); onGameEnd(null); }
+  }
+
+  function onGameEnd(winner){ const room = db.rooms[currentRoom]; if(!room) return; let msg='Hòa!';
+    if(winner){ msg = (winner==='x' ? (room.players[0] && room.players[0].name) : (room.players[1] && room.players[1].name)) + ' thắng!';
+      // update points: find which user won
+      // simple: assign +1 to winner id, -1 to loser id
+      const winnerId = (winner==='x' ? room.players[0] && room.players[0].id : room.players[1] && room.players[1].id)
+      const loserId = (winner==='x' ? room.players[1] && room.players[1].id : room.players[0] && room.players[0].id)
+      if(winnerId && db.users[winnerId]) db.users[winnerId].points = (db.users[winnerId].points||0) + 1
+      if(loserId && db.users[loserId]) db.users[loserId].points = (db.users[loserId].points||0) - 1
+      saveJSON(STORAGE.USERS, db.users)
+    }
+    alert(msg)
+    updateLeaderboard();
+  }
+
+  /* --------- Turn timer (per-room) using room object lastTick and remaining (very simple) --------- */
+  function startSyncRoom(){ stopTurnTimer(); renderBoard(); // start polling for room updates
+    if(!currentRoom) return; if(turnTimerInterval) clearInterval(turnTimerInterval);
+    turnTimerInterval = setInterval(()=>{
+      db.rooms = loadJSON(STORAGE.ROOMS, {}); // refresh
+      if(!(currentRoom in db.rooms)){ // room deleted
+        alert('Phòng đã đóng'); stopTurnTimer(); showScreen('lobby'); return
+      }
+      // refresh UI
+      renderBoard(); renderLobbyPlayer(); updateLeaderboard();
+      // handle turn timer
+      const room = db.rooms[currentRoom]; if(room.status==='playing'){
+        if(!room._turnMeta) room._turnMeta = {startedAt: Date.now(), remaining:60}
+        // If lastMove changed, reset timer
+        if(room._lastMoveTs !== (room.lastMove ? JSON.stringify(room.lastMove) : null)){
+          room._lastMoveTs = (room.lastMove ? JSON.stringify(room.lastMove) : null)
+          room._turnMeta.startedAt = Date.now(); room._turnMeta.remaining = 60; saveRooms();
         }
-      }
-    }
-
-    function onCellClick(r,c,idx){
-      if(!room) return alert('Chưa vào phòng');
-      const acc = loadAccount(); if(!acc) return alert('Chưa đăng nhập');
-      // must be joined
-      if(room.players.length<2) return alert('Phải có 2 người để bắt đầu trò chơi');
-      if(myPlayerIndex===null) return alert('Bạn chưa tham gia phòng');
-      // lock cell
-      if(r===11 && c===11) return; // lock
-      // whose turn?
-      if(room.turn===null) return alert('Chưa có lượt (đợi hệ thống khởi tạo)');
-      if(room.turn !== myPlayerIndex) return alert('Không phải lượt của bạn');
-      // must be empty
-      if(room.board[idx]!==0) return;
-      // if first move in game: allow only near LOCK (Manhattan ≤2)
-      if((room.history||[]).length===0){ const mr=11,mc=11; const man = Math.abs(r-mr)+Math.abs(c-mc); if(man>2) return alert('Lượt đầu chỉ được đánh gần ô lock (Manhattan ≤ 2)'); }
-
-      // place stone
-      room.board[idx] = myPlayerIndex===0?1:2;
-      room.lastMove = idx; room.history.push({by:room.players[myPlayerIndex].id,idx,ts:Date.now()});
-      // change turn
-      room.turn = 1-room.turn;
-      // set turn deadline
-      room.turnDeadline = Date.now() + 60000; // 60s
-      localStorage.setItem('caro_rooms', JSON.stringify({...JSON.parse(localStorage.getItem('caro_rooms')||'{}'),[room.code]:room}));
-
-      playClick(); renderBoard(); checkWinnerOrTimeout();
-    }
-
-    // join / leave handlers
-    btnJoin.addEventListener('click', ()=>{
-      const acc = loadAccount(); if(!acc) return alert('Chưa đăng nhập');
-      const rooms = JSON.parse(localStorage.getItem('caro_rooms')||'{}');
-      if(!room) return alert('Không có phòng');
-      const r = rooms[room.code];
-      if(!r) return alert('Phòng không tồn tại');
-      if(r.players.find(p=>p.id===acc.id)) return alert('Bạn đã ở trong phòng');
-      if(r.players.length>=2) return alert('Phòng đã đủ 2 người');
-      r.players.push({id:acc.id,name:acc.name});
-      // if after join players=2, set turn randomly
-      if(r.players.length===2){ r.turn = Math.random()<0.5?0:1; r.turnDeadline = Date.now()+60000; }
-      rooms[room.code]=r; localStorage.setItem('caro_rooms', JSON.stringify(rooms)); updateRoomInfo();
-    });
-
-    btnLeave.addEventListener('click', ()=>{
-      const acc = loadAccount(); if(!acc) return alert('Chưa đăng nhập');
-      const rooms = JSON.parse(localStorage.getItem('caro_rooms')||'{}');
-      if(!room) return alert('Không có phòng');
-      const r = rooms[room.code]; if(!r) return alert('Phòng không tồn tại');
-      r.players = r.players.filter(p=>p.id!==acc.id);
-      // if someone leaves, reset game state
-      if(r.players.length<2){ r.turn=null; r.turnDeadline=null; }
-      rooms[room.code]=r; localStorage.setItem('caro_rooms', JSON.stringify(rooms)); updateRoomInfo();
-    });
-
-    /* ---------- Storage event to sync across tabs ---------- */
-    window.addEventListener('storage', (e)=>{
-      if(e.key==='caro_rooms'){
-        // update local room if exists
-        if(!room) return; const rooms = JSON.parse(e.newValue||'{}'); if(!rooms[room.code]) return; room=rooms[room.code]; renderBoard(); updateRoomInfo();
-      }
-    });
-
-    /* ---------- Timer & win detection ---------- */
-    let timerInterval = setInterval(()=>{
-      if(!room) return; const rooms = JSON.parse(localStorage.getItem('caro_rooms')||'{}'); if(!rooms[room.code]) return; room = rooms[room.code];
-      if(room.turnDeadline){ const left = Math.max(0, Math.ceil((room.turnDeadline - Date.now())/1000)); timerEl.textContent = left; if(left<=10 && left>0){ playTick(); }
-        if(left<=0){ // timeout => current turn player lost
-          const loserIndex = room.turn; const winnerIndex = 1-room.turn;
-          // update ratings
-          const accs = loadAccount(); // since each tab only has its own account, rating update is only applied to the winner/loser if they are the current tab's account
-          // We'll update account rating in room.players objects via localStorage marker to indicate who lost.
-          room.turn=null; room.turnDeadline=null; room.ended=true; room.winner = winnerIndex; room.endedReason = 'timeout';
-          // mark in storage
-          const rooms2 = JSON.parse(localStorage.getItem('caro_rooms')||'{}'); rooms2[room.code]=room; localStorage.setItem('caro_rooms', JSON.stringify(rooms2));
-          alert('Hết giờ! Người chơi '+ (room.players[winnerIndex]?room.players[winnerIndex].name:'-') + ' thắng (timeout)');
-          // apply rating changes for accounts that are present on this tab
-          applyRatingAfterGame(room, winnerIndex);
+        // compute remaining using stored meta
+        const elapsed = Math.floor((Date.now() - room._turnMeta.startedAt)/1000)
+        const remain = Math.max(0, 60 - elapsed)
+        document.getElementById('turnTimer').textContent = remain + 's'
+        if(remain<=10 && remain>0) tickSound()
+        if(remain===0){ // current player loses (the one who should play)
+          // determine who lost by time: player whose role equals room.turn
+          const loserRole = room.turn; const loserId = loserRole==='x' ? (room.players[0] && room.players[0].id) : (room.players[1] && room.players[1].id)
+          const winnerId = loserRole==='x' ? (room.players[1] && room.players[1].id) : (room.players[0] && room.players[0].id)
+          if(loserId && db.users[loserId]) db.users[loserId].points = (db.users[loserId].points||0) - 1
+          if(winnerId && db.users[winnerId]) db.users[winnerId].points = (db.users[winnerId].points||0) + 1
+          room.status='finished'; saveRooms(); saveJSON(STORAGE.USERS, db.users); updateLeaderboard(); alert('Hết giờ! Người chơi ' + loserRole.toUpperCase() + ' thua')
         }
+      } else {
+        document.getElementById('turnTimer').textContent = '--'
       }
-    },1000);
+    }, 800)
+  }
+  function stopTurnTimer(){ if(turnTimerInterval) clearInterval(turnTimerInterval); turnTimerInterval=null }
 
-    function checkWinnerOrTimeout(){
-      // quick 5-in-row check around lastMove
-      const last = room.lastMove; if(last==null) return; const r = Math.floor(last/SIZE), c = last%SIZE; const val = room.board[last];
-      const dirs = [[1,0],[0,1],[1,1],[1,-1]];
-      for(const d of dirs){ let cnt=1; // count both sides
-        let rr=r+d[0], cc=c+d[1]; while(rr>=0 && rr<SIZE && cc>=0 && cc<SIZE && room.board[rr*SIZE+cc]===val){ cnt++; rr+=d[0]; cc+=d[1]; }
-        rr=r-d[0]; cc=c-d[1]; while(rr>=0 && rr<SIZE && cc>=0 && cc<SIZE && room.board[rr*SIZE+cc]===val){ cnt++; rr-=d[0]; cc-=d[1]; }
-        if(cnt>=5){ // win!
-          room.turn=null; room.turnDeadline=null; room.ended=true; room.winner = val===1?0:1; const rooms2 = JSON.parse(localStorage.getItem('caro_rooms')||'{}'); rooms2[room.code]=room; localStorage.setItem('caro_rooms', JSON.stringify(rooms2));
-          alert('Kết thúc! Người thắng: '+ (room.players[room.winner]?room.players[room.winner].name:'-'));
-          applyRatingAfterGame(room, room.winner);
-          return;
-        }
-      }
-    }
+  function resetTurnTimerRemote(){ // update room meta so all tabs reset timer
+    const room = db.rooms[currentRoom]; if(!room) return; if(!room._turnMeta) room._turnMeta = {};
+    room._turnMeta.startedAt = Date.now(); saveRooms();
+  }
 
-    function applyRatingAfterGame(roomObj, winnerIndex){
-      // If the current tab has an account and is one of players, adjust its rating and save
-      const acc = loadAccount(); if(!acc) return;
-      const myIndex = roomObj.players.findIndex(p=>p.id===acc.id);
-      if(myIndex===-1) return; // not in this tab
-      if(winnerIndex===myIndex){ acc.rating = (acc.rating||0)+1; alert('Bạn thắng: +1 điểm hạng'); } else { acc.rating = (acc.rating||0)-1; alert('Bạn thua: -1 điểm hạng'); }
-      if(acc.rating<=0){ alert('Điểm hạng ≤ 0, không thể tìm trận nữa cho đến khi reset ngày hôm sau (demo)'); }
-      saveAccount(acc); playerRatingEl.textContent = acc.rating; // update UI
-    }
+  // initial UI state
+  showScreen('login')
 
-    /* ---------- Sound: click and tick using WebAudio ---------- */
-    const audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    function playClick(){ try{ const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.type='sine'; o.frequency.value=880; g.gain.value=0.02; o.connect(g); g.connect(audioCtx.destination); o.start(); setTimeout(()=>{o.stop()},80); }catch(e){}
-    }
-    function playTick(){ try{ const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.type='square'; o.frequency.value=440; g.gain.value=0.005; o.connect(g); g.connect(audioCtx.destination); o.start(); setTimeout(()=>{o.stop()},60); }catch(e){}
-    }
+  // periodic lobby sync
+  setInterval(()=>{ db.rooms = loadJSON(STORAGE.ROOMS, {}); db.users = loadJSON(STORAGE.USERS, {}); renderRooms(); updateLeaderboard(); }, 1500)
 
-    // initial render
-    renderRooms();
+  // expose some helpers for debugging
+  window._caro = {db, saveRooms}
 
-    // Safety notes logged
-    console.log('Cờ CARO ONLINE — demo client-only loaded. Open a 2nd tab to simulate another player. Replace CLIENT_ID to enable real Google Sign-In.');
   </script>
 </body>
 </html>
