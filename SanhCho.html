@@ -3,75 +3,284 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sảnh Chờ</title>
+<title>Sảnh Chờ - Danh Sách Bàn</title>
 
+<!-- FIREBASE -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.17.0/firebase-app.js";
-  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.17.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.5.0/firebase-app.js";
+import { 
+    getFirestore, collection, getDocs, query, orderBy, limit, doc, getDoc, addDoc,deleteDoc 
+} from "https://www.gstatic.com/firebasejs/12.5.0/firebase-firestore.js";
 
-  // Firebase config giống index.html
-  const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-  };
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyC5-cGz8AzOWvlF8-kyPRipujMeY2i1iRc",
+  authDomain: "gomokuzb.firebaseapp.com",
+  projectId: "gomokuzb",
+  storageBucket: "gomokuzb.appspot.com",
+  messagingSenderId: "669696092843",
+  appId: "1:669696092843:web:b89092c51d212b631d25ee"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+// Khởi tạo Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-  async function loadUser() {
-    const email = localStorage.getItem('uid');
-    if (!email) {
-      alert("Không tìm thấy thông tin người dùng. Quay lại trang đăng nhập.");
-      window.location.href = "index.html";
-      return;
-    }
-
-    const userRef = doc(db, "users", email);
-    const docSnap = await getDoc(userRef);
-
-    if (!docSnap.exists()) {
-      alert("Người dùng không tồn tại trong database.");
-      localStorage.removeItem('uid');
-      window.location.href = "index.html";
-      return;
-    }
-
-    const user = docSnap.data();
-    document.getElementById('uid').textContent = user.id;
-    document.getElementById('tendd').textContent = user.TenND;
-    document.getElementById('diemso').textContent = user.DiemSo;
-    document.getElementById('skin').textContent = user.Skin;
-  }
-
-  window.onload = loadUser;
-
-  document.getElementById('logout').onclick = () => {
-    localStorage.removeItem('uid');
+// Kiểm tra đăng nhập
+const username = localStorage.getItem("username");
+if (!username) {
+    alert("Bạn chưa đăng nhập!");
     window.location.href = "index.html";
-  }
+}
+
+// --- HIỂN THỊ THÔNG TIN NGƯỜI DÙNG ---
+async function hienThiThongTin() {
+    const userRef = doc(db, "users", username);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+        const userData = userSnap.data();
+        document.getElementById("user").textContent = userData.TenND;
+        document.getElementById("diemso").textContent = userData.DiemSo;
+    } else {
+        alert("Người dùng không tồn tại trong Firebase!");
+        window.location.href = "index.html";
+    }
+}
+
+// --- HIỂN THỊ TOP 10 ---
+async function hienThiBangXepHang() {
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, orderBy("DiemSo", "desc"), limit(10));
+    const querySnapshot = await getDocs(q);
+
+    const tbody = document.getElementById("rankingBody");
+    tbody.innerHTML = "";
+
+    let rank = 1;
+    querySnapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${rank}</td><td>${data.TenND}</td><td>${data.DiemSo}</td>`;
+        tbody.appendChild(row);
+        rank++;
+    });
+}
+
+// --- HIỂN THỊ DANH SÁCH BÀN ---
+async function hienThiDanhSachBan() {
+    const banRef = collection(db, "Ban");
+    const querySnapshot = await getDocs(banRef);
+    const container = document.getElementById("banList");
+    container.innerHTML = "";
+
+    querySnapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const player1 = data.player1 || "Trống";
+        const player2 = data.player2 || "Trống";
+
+        const div = document.createElement("div");
+        div.className = "ban-item";
+        div.textContent = `${data.tenBan} ------ Người chơi: ${player1} --vs-- ${player2}`;
+
+        div.addEventListener("click", () => {
+            localStorage.setItem("IdBan", docSnap.id);
+            window.location.href = "gomoku.html";
+        });
+
+        container.appendChild(div);
+    });
+}
+
+// --- TẠO BÀN MỚI (MỖI NGƯỜI CHỈ ĐƯỢC 1 BÀN) ---
+window.taoBanMoi = async () => {
+    try {
+        const banRef = collection(db, "Ban");
+
+        // Kiểm tra xem người dùng đã tạo bàn chưa
+        const querySnapshot = await getDocs(banRef);
+        let daCoBan = false;
+        querySnapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            if (data.player1 === username) daCoBan = true;
+        });
+
+        if (daCoBan) {
+            alert("Bạn chỉ được tạo 1 bàn cùng lúc!");
+            return;
+        }
+
+        // Tạo tên bàn tự động
+        const soBan = querySnapshot.size + 1;
+        const tenBanMoi = `Bàn ${soBan}`;
+
+        const newBan = {
+            tenBan: tenBanMoi,
+            player1: username,
+            player2: null
+        };
+
+        await addDoc(banRef, newBan);
+        alert(`Tạo bàn thành công: ${tenBanMoi}`);
+        hienThiDanhSachBan();
+    } catch (error) {
+        console.error("Lỗi tạo bàn mới: ", error);
+        alert("Tạo bàn mới thất bại!");
+    }
+};
+
+// --- NÚT TẠM ---
+window.doiTen = () => alert("Chức năng Đổi Tên chưa lập trình!");
+window.doiAvatar = () => alert("Chức năng Avatar chưa lập trình!");
+window.thayTrangPhuc = () => alert("Chức năng Thay Trang Phục chưa lập trình!");
+window.moCuaHang = () => alert("Chức năng Cửa Hàng chưa lập trình!");
+
+// --- CHẠY KHI LOAD TRANG ---
+window.addEventListener("load", () => {
+    hienThiThongTin();
+    hienThiBangXepHang();
+    hienThiDanhSachBan();
+});
+
+// --- xóa bàn ---
+window.xoaBanCuaToi = async () => {
+    try {
+        const banRef = collection(db, "Ban");
+        const querySnapshot = await getDocs(banRef);
+
+        let daXoa = false;
+
+        querySnapshot.forEach(async (docSnap) => {
+            const data = docSnap.data();
+            // Nếu người chơi là player1 và bàn chưa có player2
+            if (data.player1 === username && !data.player2) {
+                await deleteDoc(doc(banRef, docSnap.id));
+                daXoa = true;
+                alert(`Đã xóa bàn: ${data.tenBan}`);
+                hienThiDanhSachBan(); // cập nhật danh sách
+                return; // xóa bàn đầu tiên tìm thấy và thoát
+            }
+        });
+
+        if (!daXoa) {
+            alert("Bạn không có bàn trống nào để xóa!");
+        }
+    } catch (error) {
+        console.error("Lỗi xóa bàn:", error);
+        alert("Xóa bàn thất bại!");
+    }
+};
+
 </script>
 
 <style>
-  body { display:flex; justify-content:center; align-items:center; height:100vh; font-family: Arial, sans-serif; background:#eef3fb; }
-  .card { background:#fff; padding:30px; border-radius:10px; box-shadow:0 5px 15px rgba(0,0,0,0.1); width:400px; }
-  h2 { margin-top:0; }
-  .field { margin:10px 0; }
-  .label { font-weight:bold; }
-  button { padding:10px 20px; border:none; background:#d32f2f; color:#fff; border-radius:5px; cursor:pointer; }
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background: linear-gradient(135deg, #6e8efb, #a777e3);
+    color: #fff;
+}
+.container {
+    max-width: 500px;
+    margin: 100px auto 50px;
+    background: rgba(0,0,0,0.5);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    text-align: center;
+}
+h1 { margin-bottom: 20px; font-size: 32px; }
+.welcome { margin-bottom: 20px; font-size: 24px; }
+.diemso { font-size: 20px; margin-bottom: 20px; }
+.diemso img { width: 24px; vertical-align: middle; margin-right: 8px; }
+.btn {
+    display: block;
+    width: 80%;
+    margin: 10px auto;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+.btn:hover { transform: scale(1.05); }
+.btn-rename { background-color: #ff6b6b; }
+.btn-avatar { background-color: #ffa502; }
+.btn-skin { background-color: #1e90ff; }
+.btn-shop { background-color: #2ed573; }
+
+/* BẢNG XẾP HẠNG */
+.ranking {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 250px;
+    background: rgba(0,0,0,0.6);
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+.ranking h2 { font-size: 18px; margin-bottom: 10px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 6px; border-bottom: 1px solid rgba(255,255,255,0.3); color: #fff; font-size: 14px; }
+th { text-align: left; }
+
+/* DANH SÁCH BÀN */
+.ban-list {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    width: 250px;
+    background: rgba(0,0,0,0.6);
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    color: #fff;
+}
+.ban-list h2 { font-size: 18px; margin-bottom: 10px; }
+.ban-item {
+    background: rgba(255,255,255,0.1);
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+.ban-item:hover { background: rgba(255,255,255,0.3); }
 </style>
 </head>
+
 <body>
-<div class="card">
-  <h2>Thông tin người dùng</h2>
-  <div class="field"><span class="label">ID (email): </span><span id="uid"></span></div>
-  <div class="field"><span class="label">Tên người dùng (TenND): </span><span id="tendd"></span></div>
-  <div class="field"><span class="label">Điểm số (DiemSo): </span><span id="diemso"></span></div>
-  <div class="field"><span class="label">Skin: </span><span id="skin"></span></div>
-  <button id="logout">Đăng xuất</button>
+<div class="container">
+    <h1>Sảnh Chờ</h1>
+    <div class="welcome">Chào mừng, <span id="user"></span>!</div>
+    <div class="diemso">
+        <img src="https://cdn-icons-png.flaticon.com/512/616/616408.png" alt="cúp">
+        Điểm Số: <span id="diemso">0</span>
+    </div>
+    <button class="btn btn-shop" onclick="taoBanMoi()">Tạo Bàn Mới</button>
+	<button class="btn btn-shop" onclick="xoaBanCuaToi()">Xóa Bàn</button>
+    <button class="btn btn-rename" onclick="doiTen()">Đổi Tên</button>
+    <button class="btn btn-avatar" onclick="doiAvatar()">Avatar</button>
+    <button class="btn btn-skin" onclick="thayTrangPhuc()">Thay Trang Phục</button>
+    <button class="btn btn-shop" onclick="moCuaHang()">Cửa Hàng</button>
+</div>
+
+<!-- DANH SÁCH BÀN -->
+<div class="ban-list">
+    <h2>Danh Sách Bàn</h2>
+    <div id="banList"></div>
+</div>
+
+<!-- BẢNG XẾP HẠNG -->
+<div class="ranking">
+    <h2>Top 10 Điểm Cao</h2>
+    <table>
+        <thead>
+            <tr><th>Hạng</th><th>Tên</th><th>Điểm</th></tr>
+        </thead>
+        <tbody id="rankingBody"></tbody>
+    </table>
 </div>
 </body>
 </html>
